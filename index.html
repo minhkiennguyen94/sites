@@ -1,0 +1,3835 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>STOCKSCAN - Hệ Thống Kiểm Kê Kho</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-card: rgba(30, 41, 59, 0.7);
+  --border-color: rgba(255, 255, 255, 0.08);
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --primary: #6366f1;
+  --primary-glow: rgba(99, 102, 241, 0.35);
+  --success: #10b981;
+  --success-glow: rgba(16, 185, 129, 0.25);
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --border-radius: 16px;
+  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: var(--font-family);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+}
+
+html {
+  height: -webkit-fill-available;
+}
+
+/* Glassmorphism utility */
+.glass {
+  background: var(--bg-card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-color);
+}
+
+/* App Header */
+header {
+  padding: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.brand h1 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #818cf8, #c084fc);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.status-indicators {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.badge-online {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--success);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.badge-offline {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--danger);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: currentColor;
+  box-shadow: 0 0 8px currentColor;
+}
+
+/* Container */
+main {
+  flex: 1;
+  padding: 16px;
+  max-width: 600px;
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Card styles */
+.card {
+  border-radius: var(--border-radius);
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+}
+
+/* Login Panel */
+#login-panel {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  margin-top: 40px;
+}
+
+.qr-login-box {
+  width: 100%;
+  max-width: 280px;
+  aspect-ratio: 1;
+  border-radius: 20px;
+  overflow: hidden;
+  position: relative;
+  border: 2px dashed var(--primary);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: rgba(99, 102, 241, 0.05);
+}
+
+.qr-login-box video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.qr-scan-line {
+  position: absolute;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--primary), transparent);
+  box-shadow: 0 0 10px var(--primary);
+  top: 0;
+  animation: scan 2s linear infinite;
+  z-index: 5;
+}
+
+@keyframes scan {
+  0% { top: 0%; }
+  50% { top: 100%; }
+  100% { top: 0%; }
+}
+
+.login-or {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.login-or::before, .login-or::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background-color: var(--border-color);
+  margin: 0 10px;
+}
+
+.input-group {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.input-label {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.input-field {
+  width: 100%;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 14px 16px;
+  color: var(--text-primary);
+  font-family: var(--font-family);
+  font-size: 1rem;
+  transition: var(--transition);
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-glow);
+}
+
+.btn {
+  width: 100%;
+  padding: 14px 20px;
+  border: none;
+  border-radius: 12px;
+  font-family: var(--font-family);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  transition: var(--transition);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary), #8b5cf6);
+  color: white;
+  box-shadow: 0 4px 15px var(--primary-glow);
+}
+
+.btn-primary:active {
+  transform: scale(0.98);
+  box-shadow: 0 2px 5px var(--primary-glow);
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.btn-secondary:active {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.btn-danger {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.btn-danger:active {
+  background: rgba(239, 68, 68, 0.35);
+}
+
+/* Warehouse Selector */
+#warehouse-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.user-info-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+}
+
+.warehouse-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.warehouse-card {
+  padding: 16px;
+  border-radius: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  transition: var(--transition);
+  border: 1px solid var(--border-color);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.warehouse-card:hover, .warehouse-card:active {
+  background: rgba(255, 255, 255, 0.07);
+  transform: translateY(-2px);
+}
+
+.warehouse-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 1.5rem;
+}
+
+.warehouse-info {
+  flex: 1;
+}
+
+.warehouse-name {
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 4px;
+}
+
+.warehouse-desc {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+/* Warehouse individual color themes */
+.wh-thuong-mai { border-left: 4px solid #3b82f6; }
+.wh-thuong-mai .warehouse-icon { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+
+.wh-ban-hang { border-left: 4px solid #10b981; }
+.wh-ban-hang .warehouse-icon { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+
+.wh-trai-cay { border-left: 4px solid #f59e0b; }
+.wh-trai-cay .warehouse-icon { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+
+.wh-bao-bi { border-left: 4px solid #8b5cf6; }
+.wh-bao-bi .warehouse-icon { background: rgba(139, 92, 246, 0.15); color: #8b5cf6; }
+
+.wh-nguyen-vat-lieu { border-left: 4px solid #06b6d4; }
+.wh-nguyen-vat-lieu .warehouse-icon { background: rgba(6, 182, 212, 0.15); color: #06b6d4; }
+
+/* Main Scan Screen */
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.panel-title {
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.scanner-viewport-wrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1.6;
+  background: #020617;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  margin-bottom: 16px;
+}
+
+.scanner-viewport-wrapper.hidden {
+  display: none;
+}
+
+#scanner-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.laser-line {
+  position: absolute;
+  width: 100%;
+  height: 2px;
+  background: var(--success);
+  box-shadow: 0 0 8px var(--success);
+  top: 0;
+  animation: scan 2s linear infinite;
+  z-index: 10;
+}
+
+.scanner-instructions {
+  position: absolute;
+  bottom: 10px;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  font-size: 0.75rem;
+  background: rgba(15, 23, 42, 0.7);
+  padding: 4px 8px;
+  color: var(--text-secondary);
+  z-index: 10;
+}
+
+/* Product Info Area */
+.search-scan-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.search-scan-bar input {
+  flex: 1;
+}
+
+.btn-icon {
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 1.25rem;
+}
+
+.product-result-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.product-result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.product-name {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.product-barcode {
+  font-family: monospace;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.product-tag {
+  font-size: 0.7rem;
+  padding: 3px 8px;
+  background: rgba(99, 102, 241, 0.1);
+  color: #a5b4fc;
+  border-radius: 20px;
+  border: 1px solid rgba(99, 102, 241, 0.2);
+}
+
+/* Input Form & Quantity */
+.counting-form {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.stepper-container {
+  display: flex;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(15, 23, 42, 0.4);
+}
+
+.btn-step {
+  width: 40px;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.btn-step:active {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.qty-input-field {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  text-align: center;
+  font-size: 1.25rem;
+  font-weight: 700;
+  font-family: var(--font-family);
+  width: 100%;
+}
+
+.qty-input-field:focus {
+  outline: none;
+}
+
+.unit-select-field {
+  width: 100%;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 10px 12px;
+  color: var(--text-primary);
+  font-family: var(--font-family);
+  font-size: 0.95rem;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+  padding-right: 36px;
+}
+
+.quick-number-pad {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.btn-pad {
+  padding: 10px 0;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-family: var(--font-family);
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-pad:active {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+/* History Counts (Lần 1, 2, 3) */
+.history-counts-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.count-box {
+  background: rgba(255, 255, 255, 0.015);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 8px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.count-box-label {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.count-box-value {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.count-box-unit {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.count-box.active {
+  border-color: var(--primary);
+  background: rgba(99, 102, 241, 0.05);
+}
+
+/* Fruit Picker Group UI */
+.fruit-picker-group {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+  max-height: 160px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.fruit-item-btn {
+  padding: 10px;
+  background: rgba(245, 158, 11, 0.05);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: 10px;
+  color: var(--text-primary);
+  font-family: var(--font-family);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: var(--transition);
+}
+
+.fruit-item-btn:active, .fruit-item-btn.selected {
+  background: var(--warning);
+  border-color: var(--warning);
+  color: #0f172a;
+}
+
+/* Popups / Modals */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 500;
+  padding: 20px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.modal-overlay.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.modal-content {
+  width: 100%;
+  max-width: 400px;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transform: translateY(20px);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.modal-overlay.show .modal-content {
+  transform: translateY(0);
+}
+
+.modal-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #fca5a5;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.camera-photo-box {
+  width: 100%;
+  aspect-ratio: 4/3;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #020617;
+  border: 1px solid var(--border-color);
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.camera-photo-box video, .camera-photo-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.camera-capture-trigger {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: white;
+  border: 4px solid rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  z-index: 20;
+}
+
+.camera-capture-trigger:active {
+  transform: translateX(-50%) scale(0.92);
+}
+
+/* Toast Notifications */
+.toast-container {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-20px);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: calc(100% - 32px);
+  max-width: 320px;
+  pointer-events: none;
+  opacity: 0;
+  transition: transform 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28), opacity 0.3s ease;
+}
+
+.toast-container.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
+.toast {
+  background: rgba(30, 41, 59, 0.95);
+  border: 1px solid var(--border-color);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 12px 16px;
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  pointer-events: auto;
+}
+
+.toast-icon {
+  font-size: 1.15rem;
+}
+
+.toast-success {
+  border-left: 4px solid var(--success);
+}
+.toast-success .toast-icon { color: var(--success); }
+
+.toast-warning {
+  border-left: 4px solid var(--warning);
+}
+.toast-warning .toast-icon { color: var(--warning); }
+
+.toast-danger {
+  border-left: 4px solid var(--danger);
+}
+.toast-danger .toast-icon { color: var(--danger); }
+
+/* Settings screen */
+.settings-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.settings-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Log history list */
+.log-history-list {
+  max-height: 250px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.log-item {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 0.8rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.log-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.log-item-name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.log-item-details {
+  color: var(--text-secondary);
+}
+
+.log-item-counts {
+  text-align: right;
+}
+
+.log-item-total {
+  font-weight: 700;
+  color: var(--success);
+}
+
+/* Utility classes */
+.hidden {
+  display: none !important;
+}
+
+.flex-row {
+  display: flex;
+  gap: 8px;
+}
+
+/* Beautiful custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Nút xóa slot đếm riêng biệt */
+.btn-delete-slot {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: rgba(239, 68, 68, 0.85);
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  color: white;
+  font-size: 0.7rem;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  z-index: 20;
+  transition: var(--transition);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.btn-delete-slot:hover {
+  background: var(--danger);
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.5);
+}
+
+.btn-delete-slot:active {
+  transform: scale(0.9);
+}
+
+/* Container hiển thị số lượng to rõ đang nhập */
+.qty-display-container {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  height: 64px;
+  padding: 0 16px;
+  text-align: right;
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+}
+
+#qty-display-val {
+  font-size: 2.25rem;
+  font-weight: 700;
+  color: var(--success);
+  font-family: monospace;
+  line-height: 1;
+}
+
+#qty-display-unit {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  line-height: 1;
+}
+
+/* Layout Numpad + ĐVT */
+.numpad-uom-layout {
+  display: grid;
+  grid-template-columns: 2.2fr 1fr;
+  gap: 12px;
+}
+
+/* Bảng số Numpad */
+.numpad-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.btn-num {
+  padding: 16px 0;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  color: var(--text-primary);
+  font-family: var(--font-family);
+  font-size: 1.25rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.btn-num:hover, .btn-num:active {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-1px);
+}
+
+.btn-backspace {
+  background: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
+.btn-backspace:hover, .btn-backspace:active {
+  background: rgba(239, 68, 68, 0.35);
+}
+
+/* ĐVT xếp dọc */
+.uom-vertical-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: flex-start;
+}
+
+.btn-uom {
+  width: 100%;
+  padding: 12px 6px;
+  background: rgba(99, 102, 241, 0.05);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  border-radius: 10px;
+  color: var(--text-primary);
+  font-family: var(--font-family);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.btn-uom:hover, .btn-uom.selected {
+  background: var(--primary);
+  border-color: var(--primary);
+  box-shadow: 0 0 10px var(--primary-glow);
+}
+
+.btn-uom:active {
+  transform: scale(0.96);
+}
+
+/* Row hành động lịch sử kiểm kê */
+.btn-icon-action {
+  transition: var(--transition);
+}
+.btn-icon-action:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.2);
+}
+.btn-icon-action:active {
+  transform: scale(0.9);
+}
+
+/* Nút xóa mã vạch tích hợp */
+#btn-clear-barcode {
+  transition: var(--transition);
+}
+#btn-clear-barcode:hover {
+  color: var(--text-primary) !important;
+}
+#btn-clear-barcode:active {
+  transform: translateY(-50%) scale(0.85) !important;
+}
+
+/* Modal tìm kiếm sản phẩm chi tiết */
+.modal-product-item {
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: var(--transition);
+  margin-bottom: 8px;
+}
+
+.modal-product-item:hover {
+  background: rgba(99, 102, 241, 0.08);
+  border-color: var(--primary);
+}
+
+.modal-product-item-name {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.modal-product-item-sub {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-top: 2px;
+  display: flex;
+  justify-content: space-between;
+}
+
+/* Segmented Tab Bar Navigation */
+.tabs-navigation {
+  display: flex;
+  background: rgba(15, 23, 42, 0.4);
+  border-radius: 12px;
+  padding: 4px;
+  margin-bottom: 12px;
+  border: 1px solid var(--border-color);
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 10px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-family: var(--font-family);
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.tab-btn.active {
+  background: var(--primary);
+  color: white;
+  font-weight: 600;
+  box-shadow: 0 4px 10px var(--primary-glow);
+}
+
+/* Modal virtual Numpad */
+.modal-numpad-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  width: 100%;
+}
+
+.btn-modal-num {
+  padding: 12px 0;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  color: var(--text-primary);
+  font-family: var(--font-family);
+  font-size: 1.15rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: var(--transition);
+}
+
+.btn-modal-num:active {
+  background: rgba(255, 255, 255, 0.1);
+  transform: scale(0.96);
+}
+
+.btn-modal-backspace {
+  background: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
+.btn-modal-backspace:active {
+  background: rgba(239, 68, 68, 0.35);
+}
+
+/* Switch styling for hiding keyboard */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #475569;
+  transition: .3s;
+  border-radius: 22px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .3s;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: var(--primary);
+}
+
+input:checked + .slider:before {
+  transform: translateX(22px);
+}
+</style>
+<script>
+// Dữ liệu danh mục sản phẩm và nhân viên mặc định phục vụ kiểm thử offline
+const MOCK_DATA = {
+  employees: {
+    "EMP001": "Nguyễn Văn A",
+    "EMP002": "Trần Thị B",
+    "EMP003": "Lê Hoàng C",
+    "USER_PROD_HUNG": "Nguyễn Văn Hùng"
+  },
+  
+  products: [
+    // Kho thương mại & Kho bán hàng
+    {
+      barcode: "8930000000001",
+      name: "Bia Heineken Lon 330ml",
+      category: "Thương mại",
+      defaultUnit: "lon",
+      units: [
+        { name: "thùng", factor: 24 },
+        { name: "lốc", factor: 6 }
+      ],
+      group: "Bia"
+    },
+    {
+      barcode: "8930000000002",
+      name: "Nước ngọt Coca Cola Lon 320ml",
+      category: "Thương mại",
+      defaultUnit: "lon",
+      units: [
+        { name: "thùng", factor: 24 },
+        { name: "lốc", factor: 6 }
+      ],
+      group: "Nước ngọt"
+    },
+    {
+      barcode: "8930000000003",
+      name: "Sữa tươi Vinamilk Ít Đường 180ml",
+      category: "Thương mại",
+      defaultUnit: "hộp",
+      units: [
+        { name: "thùng", factor: 48 },
+        { name: "lốc", factor: 4 }
+      ],
+      group: "Sữa"
+    },
+    {
+      barcode: "8930000000004",
+      name: "Mì Hảo Hảo Tôm Chua Cay 75g",
+      category: "Thương mại",
+      defaultUnit: "gói",
+      units: [
+        { name: "thùng", factor: 30 }
+      ],
+      group: "Mì ăn liền"
+    },
+    
+    // Kho trái cây (Táo)
+    {
+      barcode: "FRUIT001",
+      plu: "101",
+      name: "Táo Fuji Nhật Bản",
+      category: "Trái cây",
+      defaultUnit: "kg",
+      units: [],
+      group: "Táo"
+    },
+    {
+      barcode: "FRUIT001_2",
+      plu: "1012",
+      name: "Táo Envy Mỹ",
+      category: "Trái cây",
+      defaultUnit: "kg",
+      units: [],
+      group: "Táo"
+    },
+    {
+      barcode: "FRUIT001_3",
+      plu: "1013",
+      name: "Táo Gala New Zealand",
+      category: "Trái cây",
+      defaultUnit: "kg",
+      units: [],
+      group: "Táo"
+    },
+    // Kho trái cây (Nho)
+    {
+      barcode: "FRUIT002",
+      plu: "102",
+      name: "Nho Mẫu Đơn Hàn Quốc",
+      category: "Trái cây",
+      defaultUnit: "kg",
+      units: [],
+      group: "Nho"
+    },
+    {
+      barcode: "FRUIT002_2",
+      plu: "1022",
+      name: "Nho Đen Không Hạt Mỹ",
+      category: "Trái cây",
+      defaultUnit: "kg",
+      units: [],
+      group: "Nho"
+    },
+    {
+      barcode: "FRUIT002_3",
+      plu: "1023",
+      name: "Nho Đỏ Ninh Thuận",
+      category: "Trái cây",
+      defaultUnit: "kg",
+      units: [],
+      group: "Nho"
+    },
+    // Kho trái cây (Cam)
+    {
+      barcode: "FRUIT003",
+      plu: "103",
+      name: "Cam Sành Hàm Yên",
+      category: "Trái cây",
+      defaultUnit: "kg",
+      units: [],
+      group: "Cam"
+    },
+    {
+      barcode: "FRUIT003_2",
+      plu: "1032",
+      name: "Cam Cao Phong",
+      category: "Trái cây",
+      defaultUnit: "kg",
+      units: [],
+      group: "Cam"
+    },
+    {
+      barcode: "FRUIT003_3",
+      plu: "1033",
+      name: "Cam Vàng Úc",
+      category: "Trái cây",
+      defaultUnit: "kg",
+      units: [],
+      group: "Cam"
+    },
+    // Kho trái cây (Xoài)
+    {
+      barcode: "FRUIT004",
+      plu: "104",
+      name: "Xoài Cát Hòa Lộc",
+      category: "Trái cây",
+      defaultUnit: "kg",
+      units: [],
+      group: "Xoài"
+    },
+    {
+      barcode: "FRUIT004_2",
+      plu: "1042",
+      name: "Xoài Keo Campuchia",
+      category: "Trái cây",
+      defaultUnit: "kg",
+      units: [],
+      group: "Xoài"
+    },
+    // Kho trái cây (Bơ)
+    {
+      barcode: "FRUIT005",
+      plu: "105",
+      name: "Bơ Sáp Đắk Lắk",
+      category: "Trái cây",
+      defaultUnit: "kg",
+      units: [],
+      group: "Bơ"
+    },
+    {
+      barcode: "FRUIT005_2",
+      plu: "1052",
+      name: "Bơ Booth",
+      category: "Trái cây",
+      defaultUnit: "kg",
+      units: [],
+      group: "Bơ"
+    },
+
+    // Kho bao bì (bao tải lớn, túi nilon)
+    {
+      barcode: "BAG001",
+      name: "Bao tải dứa xanh 60x100 (bao tải lớn)",
+      category: "Bao bì",
+      defaultUnit: "kg",
+      units: [
+        { name: "bao", factor: 50 },
+        { name: "kiện", factor: 100 }
+      ],
+      group: "Bao tải"
+    },
+    {
+      barcode: "BAG002",
+      name: "Túi nilon quai xách nhựa PE 5kg",
+      category: "Bao bì",
+      defaultUnit: "kg",
+      units: [
+        { name: "kiện lớn", factor: 20 }
+      ],
+      group: "Túi nilon"
+    },
+    
+    // Kho nguyên vật liệu
+    {
+      barcode: "MAT001",
+      name: "Bột mì đa dụng Hoa Ngọc Lan",
+      category: "Nguyên vật liệu",
+      defaultUnit: "kg",
+      units: [
+        { name: "bao", factor: 25 }
+      ],
+      group: "Bột"
+    },
+    {
+      barcode: "MAT002",
+      name: "Đường tinh luyện Biên Hòa 1kg",
+      category: "Nguyên vật liệu",
+      defaultUnit: "cái",
+      units: [
+        { name: "bao", factor: 50 },
+        { name: "kiện", factor: 10 }
+      ],
+      group: "Đường"
+    },
+    {
+      barcode: "MAT003",
+      name: "Hộp nhựa tròn đựng thực phẩm 500ml",
+      category: "Nguyên vật liệu",
+      defaultUnit: "cái",
+      units: [
+        { name: "thùng", factor: 500 }
+      ],
+      group: "Hộp nhựa"
+    }
+  ]
+};
+
+// Hàm lưu dữ liệu vào localStorage nếu chưa có
+function initializeMockData() {
+  if (!localStorage.getItem("inventory_employees")) {
+    localStorage.setItem("inventory_employees", JSON.stringify(MOCK_DATA.employees));
+  }
+  if (!localStorage.getItem("inventory_products")) {
+    localStorage.setItem("inventory_products", JSON.stringify(MOCK_DATA.products));
+  }
+  if (!localStorage.getItem("inventory_records")) {
+    localStorage.setItem("inventory_records", JSON.stringify([]));
+  }
+  if (!localStorage.getItem("unidentified_photos")) {
+    localStorage.setItem("unidentified_photos", JSON.stringify([]));
+  }
+}
+
+// Khởi chạy dữ liệu mẫu
+initializeMockData();
+</script>
+</head>
+<body>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <header>
+    <div class="brand" style="display: flex; align-items: center; gap: 8px;">
+      <span style="font-size: 1.5rem;">📦</span>
+      <div style="display: flex; flex-direction: column;">
+        <h1 style="line-height: 1.1; font-size: 1.2rem; margin: 0; font-weight: 700;">STOCKSCAN</h1>
+        <span style="font-size: 0.62rem; color: var(--primary); letter-spacing: 0.5px; font-weight: 600; text-transform: uppercase; margin-top: 1px;">Minh Phát Co., Ltd</span>
+      </div>
+    </div>
+    <div class="status-indicators">
+      <div id="network-badge" class="badge badge-online">
+        <span class="dot"></span>
+        <span id="network-text">Trực tuyến</span>
+      </div>
+      <button id="btn-settings" class="btn btn-secondary btn-icon" style="border-radius: 50%; width: 36px; height: 36px;" title="Cấu hình Google Sheets">⚙️</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- MÀN HÌNH 1: ĐĂNG NHẬP NHÂN VIÊN -->
+    <div id="panel-login" class="card glass">
+      <!-- Logo thương hiệu Công ty Minh Phát -->
+      <div style="text-align: center; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 16px;">
+        <span style="font-size: 2.2rem; display: block; margin-bottom: 6px;">🏭</span>
+        <h2 style="font-size: 1.15rem; font-weight: 700; color: var(--text-primary); margin: 0; text-transform: uppercase; letter-spacing: 0.8px;">Minh Phát</h2>
+        <span style="font-size: 0.7rem; color: var(--text-secondary); display: block; margin-top: 2px; font-weight: 500; letter-spacing: 0.3px;">CÔNG TY TNHH SX & DV MINH PHÁT</span>
+      </div>
+
+      <h3 style="text-align: center; margin-bottom: 8px; font-weight: 600; font-size: 1.1rem; color: var(--text-primary);">Đăng Nhập Hệ Thống</h3>
+      <p style="text-align: center; color: var(--text-secondary); font-size: 0.82rem; margin-bottom: 20px;">
+        Quét mã QR nhân viên hoặc nhập mã thủ công để bắt đầu kiểm kê.
+      </p>
+
+      <div id="login-panel">
+        <!-- Nút bật/tắt camera đăng nhập -->
+        <button id="btn-toggle-login-cam" class="btn btn-primary" style="width: auto; padding: 10px 20px; font-size: 0.9rem; margin-bottom: 12px; display: inline-flex; align-items: center; gap: 6px;">📷 Quét mã QR đăng nhập</button>
+        
+        <!-- Khung quét camera QR đăng nhập -->
+        <div id="login-qr-wrapper" class="hidden" style="width: 100%; display: none; justify-content: center; margin-bottom: 12px;">
+          <div class="qr-login-box">
+            <div class="qr-scan-line"></div>
+            <video id="login-scanner-video" autoplay playsinline></video>
+            <div class="scanner-instructions">Đang mở camera trước...</div>
+          </div>
+        </div>
+
+        <div class="login-or">hoặc nhập mã thủ công</div>
+
+        <div class="input-group">
+          <label class="input-label" for="employee-id-input">Mã nhân viên (Ví dụ: USER_PROD_HUNG, EMP001)</label>
+          <div class="flex-row" style="width: 100%;">
+            <input type="password" id="employee-id-input" class="input-field" placeholder="Nhập mã nhân viên..." autocomplete="off">
+            <button id="btn-login-manual" class="btn btn-primary" style="width: auto; padding: 0 24px;">Vào</button>
+          </div>
+        </div>
+        
+
+      </div>
+    </div>
+
+    <!-- MÀN HÌNH 2: CHỌN KHO -->
+    <div id="panel-warehouse" class="card glass hidden">
+      <div class="user-info-bar">
+        <div>
+          <span style="font-size: 0.8rem; color: var(--text-secondary);">Nhân viên:</span>
+          <div id="current-user-name" style="font-weight: 600;">Nguyễn Văn Hùng</div>
+        </div>
+        <button id="btn-logout" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem; width: auto;">Đăng xuất</button>
+      </div>
+
+      <h3 style="margin: 20px 0 10px 0; font-weight: 600;">Chọn Kho Kiểm Kê</h3>
+      <div class="warehouse-grid">
+        <!-- Kho Thương Mại -->
+        <div class="warehouse-card wh-thuong-mai" data-warehouse="Kho thương mại">
+          <div class="warehouse-icon">📦</div>
+          <div class="warehouse-info">
+            <div class="warehouse-name">Kho thương mại (Kho tổng)</div>
+            <div class="warehouse-desc">Hàng thùng kiện lớn. Ưu tiên ĐVT: Kiện lớn.</div>
+          </div>
+        </div>
+
+        <!-- Kho Bán Hàng -->
+        <div class="warehouse-card wh-ban-hang" data-warehouse="Kho bán hàng">
+          <div class="warehouse-icon">🏪</div>
+          <div class="warehouse-info">
+            <div class="warehouse-name">Kho bán hàng (Siêu thị)</div>
+            <div class="warehouse-desc">Hàng bày kệ. Ưu tiên ĐVT: ĐVT mặc định gốc.</div>
+          </div>
+        </div>
+
+        <!-- Kho Trái Cây -->
+        <div class="warehouse-card wh-trai-cay" data-warehouse="Kho trái cây">
+          <div class="warehouse-icon">🍎</div>
+          <div class="warehouse-info">
+            <div class="warehouse-name">Kho trái cây (Cân điện tử)</div>
+            <div class="warehouse-desc">Nhập mã cân PLU, tên hoặc chọn danh sách.</div>
+          </div>
+        </div>
+
+        <!-- Kho Bao Bì -->
+        <div class="warehouse-card wh-bao-bi" data-warehouse="Kho bao bì">
+          <div class="warehouse-icon">🛍️</div>
+          <div class="warehouse-info">
+            <div class="warehouse-name">Kho bao bì (Bao tải nhựa)</div>
+            <div class="warehouse-desc">Kiểm soát theo bao tải lớn hoặc kg.</div>
+          </div>
+        </div>
+
+        <!-- Kho Nguyên Vật Liệu -->
+        <div class="warehouse-card wh-nguyen-vat-lieu" data-warehouse="Kho nguyên vật liệu">
+          <div class="warehouse-icon">🏭</div>
+          <div class="warehouse-info">
+            <div class="warehouse-name">Kho nguyên vật liệu</div>
+            <div class="warehouse-desc">Kiểm soát theo cái, kg hoặc kiện.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MÀN HÌNH 3: QUÉT VÀ KIỂM KÊ CHÍNH -->
+    <div id="panel-scan" class="hidden" style="display: flex; flex-direction: column; gap: 12px;">
+      
+      <div class="panel-header" style="margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center; width: 100%;">
+        <button id="btn-back-to-wh" style="background:none; border:none; color: var(--primary); font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; gap: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+          ⬅ <span id="current-warehouse-title">Kho thương mại</span>
+        </button>
+        <div style="display: flex; gap: 6px; align-items: center; flex-shrink: 0;">
+          <button id="btn-toggle-camera" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem; width: auto; display: flex; align-items: center; gap: 4px;">
+            📷 <span>Bật Camera</span>
+          </button>
+          <button id="btn-logout-scan" class="btn btn-danger" style="padding: 6px 12px; font-size: 0.8rem; width: auto; display: flex; align-items: center; gap: 4px;">
+            🔴 <span>Đăng xuất</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Segmented Tab Navigation -->
+      <div class="tabs-navigation">
+        <button id="tab-btn-scan" class="tab-btn active">📦 Kiểm Kê</button>
+        <button id="tab-btn-history" class="tab-btn">📋 Lịch Sử</button>
+      </div>
+
+      <!-- Camera quét barcode sản phẩm -->
+      <div id="scanner-viewport-container" class="scanner-viewport-wrapper hidden">
+        <div class="laser-line"></div>
+        <video id="scanner-video" autoplay playsinline></video>
+        <div class="scanner-instructions">Đang mở camera sau để quét mã...</div>
+      </div>
+
+      <!-- TAB CONTENT: KIỂM KÊ -->
+      <div id="tab-content-scan" class="card glass" style="margin-bottom: 0; padding: 16px;">
+        <!-- Nhập mã vạch sản phẩm / Mã cân PLU (Kho trái cây) -->
+        <div class="search-scan-bar" style="position: relative; display: flex; gap: 6px; align-items: center; margin-bottom: 12px;">
+          <div style="position: relative; flex: 1;">
+            <input type="text" id="barcode-input" class="input-field" placeholder="Dùng máy quét mã vạch để quét..." autocomplete="off" style="padding-right: 36px; width: 100%;" readonly>
+            <!-- Nút X xóa nhanh tích hợp trực tiếp trong ô input -->
+            <button id="btn-clear-barcode" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-secondary); font-size: 1.25rem; cursor: pointer; display: none; padding: 4px; z-index: 15; pointer-events: auto;" title="Xóa mã vạch">✕</button>
+          </div>
+          <button id="btn-manual-search" class="btn btn-primary btn-icon" style="width: 42px; height: 42px; padding: 0; display: flex; justify-content: center; align-items: center; flex-shrink: 0;" title="Tìm kiếm chi tiết">🔍</button>
+          <button id="btn-add-temp-product" class="btn btn-secondary btn-icon" style="width: 42px; height: 42px; padding: 0; display: flex; justify-content: center; align-items: center; flex-shrink: 0; font-weight: bold; font-size: 1.25rem;" title="Thêm sản phẩm mới ngoài danh mục">＋</button>
+        </div>
+
+
+
+        <!-- Danh sách xổ xuống chọn nhanh Trái cây (Chỉ hiện ở Kho Trái cây) -->
+        <div id="fruit-picker-section" class="input-group hidden" style="margin-bottom: 12px;">
+          <label class="input-label">Chọn trái cây theo nhóm & tên</label>
+          <div style="display: flex; gap: 8px;">
+            <select id="fruit-group-select" class="unit-select-field" style="flex: 1; background-position: right 12px center; padding-right: 28px;">
+              <option value="">-- Chọn nhóm --</option>
+            </select>
+            <select id="fruit-item-select" class="unit-select-field" style="flex: 1; background-position: right 12px center; padding-right: 28px;" disabled>
+              <option value="">-- Chọn trái cây --</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Form nhập liệu chính (Numpad và ĐVT luôn hiển thị cố định) -->
+        <div id="main-counting-form">
+          <!-- Card thông tin sản phẩm quét được -->
+          <div class="product-result-card" style="margin-bottom: 12px; padding: 12px;">
+            <div class="product-result-header" style="margin-bottom: 0;">
+              <div>
+                <div id="prod-name" class="product-name" style="font-size: 1.1rem; color: var(--text-secondary);">Chờ quét sản phẩm...</div>
+                <div id="prod-barcode" class="product-barcode">Vui lòng quét hoặc nhập mã vạch để bắt đầu</div>
+              </div>
+              <span id="prod-category" class="product-tag hidden">Trống</span>
+            </div>
+          </div>
+
+          <!-- Màn hình hiển thị số lượng to rõ đang nhập -->
+          <div class="qty-display-container">
+            <span id="qty-display-val"></span>
+            <span id="qty-display-unit">-</span>
+          </div>
+
+          <!-- Layout 2 cột cố định: Trái Numpad, Phải ĐVT + Nút Lưu -->
+          <div class="numpad-uom-layout">
+            <!-- Cột Trái: Bảng số ảo Numpad -->
+            <div class="numpad-grid">
+              <button class="btn-num" data-val="7">7</button>
+              <button class="btn-num" data-val="8">8</button>
+              <button class="btn-num" data-val="9">9</button>
+              
+              <button class="btn-num" data-val="4">4</button>
+              <button class="btn-num" data-val="5">5</button>
+              <button class="btn-num" data-val="6">6</button>
+              
+              <button class="btn-num" data-val="1">1</button>
+              <button class="btn-num" data-val="2">2</button>
+              <button class="btn-num" data-val="3">3</button>
+              
+              <button class="btn-num" data-val="0">0</button>
+              <button class="btn-num" data-val=".">.</button>
+              <button class="btn-num btn-backspace" data-val="backspace">⌫</button>
+            </div>
+
+            <!-- Cột Phải: ĐVT xếp dọc và nút Lưu nằm dưới cùng -->
+            <div class="uom-vertical-stack">
+              <div id="uom-button-column" style="display: flex; flex-direction: column; gap: 8px;">
+                <button class="btn-uom selected" data-unit="default" data-factor="1" disabled>-</button>
+              </div>
+              <!-- Nút Lưu nằm gọn gàng ngay dưới cột ĐVT -->
+              <button id="btn-save-record" class="btn btn-primary" style="padding: 12px 0; font-size: 1.05rem; font-weight: 700; height: 100%; min-height: 54px; margin-top: auto; background: var(--success); box-shadow: 0 4px 10px var(--success-glow);">💾 Lưu</button>
+            </div>
+          </div>
+          
+          <!-- Lịch sử kiểm nhanh (5-6 dòng gần nhất) dưới Numpad -->
+          <div id="scan-preview-log-section" style="margin-top: 16px; border-top: 1px solid var(--border-color); padding-top: 12px;">
+            <h4 style="font-size: 0.85rem; font-weight: 600; margin-bottom: 8px; color: var(--text-secondary); display: flex; justify-content: space-between; align-items: center;">
+              <span>📋 Lượt kiểm gần đây</span>
+              <span style="font-size: 0.75rem; color: var(--text-secondary);">Tối đa 6 lượt</span>
+            </h4>
+            <div id="preview-log-list" style="display: flex; flex-direction: column; gap: 8px;">
+              <div style="text-align:center; padding: 12px; color: var(--text-secondary); font-size: 0.8rem;">Chưa có sản phẩm nào được kiểm kê trong kho này.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB CONTENT: LỊCH SỬ KIỂM KÊ -->
+      <div id="tab-content-history" class="card glass hidden" style="margin-top: 0; padding: 16px;">
+        <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between;">
+          <span>📋 Lịch sử kiểm kê (Mới nhất ở đầu)</span>
+          <span id="records-count-badge" style="font-size: 0.75rem; background: rgba(99, 102, 241, 0.15); color: #a5b4fc; padding: 2px 8px; border-radius: 10px;">0 mã</span>
+        </h3>
+        
+        <div id="recent-log-list" style="display: flex; flex-direction: column; gap: 8px;">
+          <!-- Load động danh sách từ JS -->
+          <div style="text-align:center; padding: 20px; color: var(--text-secondary); font-size: 0.8rem;">Chưa có sản phẩm nào được kiểm kê.</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- MÀN HÌNH 4: CÀI ĐẶT -->
+    <div id="panel-settings" class="card glass hidden">
+      <div class="panel-header">
+        <h3 class="panel-title">Cấu hình kết nối Google Sheet</h3>
+        <button id="btn-close-settings" style="background:none; border:none; color: var(--text-secondary); font-size: 1.25rem; cursor: pointer;">✕</button>
+      </div>
+
+      <div class="settings-panel">
+        <div class="input-group">
+          <label class="input-label" for="sheet-api-url">Đường dẫn Google Apps Script Web App URL</label>
+          <input type="url" id="sheet-api-url" class="input-field" placeholder="https://script.google.com/macros/s/.../exec">
+          <span style="font-size: 0.7rem; color: var(--text-secondary);">
+            Dán đường dẫn Web App của bạn để đồng bộ. Để trống sẽ dùng cơ sở dữ liệu giả lập offline.
+          </span>
+          <button id="btn-save-api-url" class="btn btn-primary" style="margin-top: 6px;">Cập nhật kết nối</button>
+        </div>
+
+        <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 8px 0;">
+
+        <div class="flex-row">
+          <button id="btn-clear-local" class="btn btn-danger" style="flex:1;">Xóa lịch sử cục bộ</button>
+          <button id="btn-export-csv" class="btn btn-secondary" style="flex:1;">Xuất Excel (CSV)</button>
+        </div>
+        
+        <button id="btn-sync-offline" class="btn btn-primary" style="display:none; margin-top: 10px;">🔄 Đồng bộ thủ công ngoại tuyến</button>
+
+        <!-- QR Code chia sẻ nhanh -->
+        <div id="settings-qr-section" style="margin-top: 16px; text-align: center; border-top: 1px solid var(--border-color); padding-top: 12px; display: none;">
+          <label class="input-label" style="margin-bottom: 8px; font-weight: 600; font-size: 0.8rem; color: var(--text-secondary);">📲 Quét mã QR để mở App trên điện thoại</label>
+          <div style="background: white; padding: 10px; display: inline-block; border-radius: 8px; margin-bottom: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+            <img id="settings-qr-img" src="" alt="QR Code" style="width: 140px; height: 140px; display: block;">
+          </div>
+          <div style="font-size: 0.7rem; color: var(--text-secondary); line-height: 1.3;">
+            Nhân viên quét mã này để truy cập nhanh mà không cần gõ URL.
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- POPUP 1: HÀNG HÓA KHÔNG CÓ TRONG DANH MỤC -->
+  <div id="modal-not-found" class="modal-overlay">
+    <div class="modal-content glass" style="border: 1px solid rgba(239, 68, 68, 0.3);">
+      <h3 class="modal-title">🚨 Hàng hóa không có trong dữ liệu</h3>
+      
+      <div class="input-group" style="margin-bottom: 10px;">
+        <label class="input-label" for="not-found-barcode-input">Mã vạch / Mã sản phẩm</label>
+        <input type="text" id="not-found-barcode-input" class="input-field" placeholder="Nhập mã vạch sản phẩm...">
+      </div>
+
+      <div class="input-group" style="margin-bottom: 10px;">
+        <label class="input-label" for="not-found-name-input">Tên tạm sản phẩm</label>
+        <input type="text" id="not-found-name-input" class="input-field" placeholder="Nhập tên sản phẩm tạm thời...">
+      </div>
+
+      <!-- Khung mở camera chụp ảnh sản phẩm lỗi -->
+      <div class="camera-photo-box">
+        <video id="photo-capture-video" autoplay playsinline class="hidden"></video>
+        <canvas id="photo-canvas" class="hidden"></canvas>
+        <img id="photo-preview" class="hidden">
+        
+        <div id="photo-placeholder" style="text-align:center; color: var(--text-secondary); font-size: 0.8rem;">
+          📷 Camera chụp ảnh
+        </div>
+        
+        <!-- Nút chụp tròn giữa -->
+        <button id="btn-capture-photo" class="camera-capture-trigger hidden"></button>
+      </div>
+
+      <div class="flex-row" style="gap: 8px;">
+        <button id="btn-open-photo-cam" class="btn btn-secondary" style="flex: 1; font-size: 0.8rem; padding: 10px 0;">📷 Stream Cam</button>
+        <label for="photo-file-input" class="btn btn-primary" style="flex: 1; font-size: 0.8rem; padding: 10px 0; text-align: center; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px; background: linear-gradient(135deg, var(--primary), #a5b4fc); box-shadow: none;">
+          📤 Tải ảnh / Chụp
+        </label>
+        <input type="file" id="photo-file-input" accept="image/*" style="display: none;">
+        <button id="btn-recapture" class="btn btn-secondary hidden" style="flex: 1; font-size: 0.8rem;">🔄 Chụp Lại</button>
+      </div>
+
+      <div class="input-group">
+        <label class="input-label" for="not-found-note">Ghi chú thêm (Vị trí, giá... nếu có)</label>
+        <textarea id="not-found-note" class="input-field" style="height: 60px; resize: none; font-size: 0.85rem;" placeholder="Nhập mô tả hoặc thông tin thêm..."></textarea>
+      </div>
+
+      <div class="flex-row">
+        <button id="btn-close-not-found" class="btn btn-secondary" style="flex: 1;">Bỏ qua</button>
+        <button id="btn-save-not-found" class="btn btn-primary" style="flex: 1; background: linear-gradient(135deg, var(--danger), #f43f5e); box-shadow: none;">Lưu ảnh lỗi</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- POPUP 2: SỬA SỐ LƯỢNG LỊCH SỬ -->
+  <div id="modal-edit-history" class="modal-overlay">
+    <div class="modal-content glass" style="border: 1px solid var(--primary); max-width: 400px; display: flex; flex-direction: column; padding: 20px; gap: 16px;">
+      <h3 class="modal-title" style="color: var(--primary);">✏️ Sửa đổi số lượng kiểm đếm</h3>
+      
+      <div style="background: rgba(255,255,255,0.02); padding: 10px; border-radius: 10px; border: 1px solid var(--border-color);">
+        <div id="edit-prod-name" class="product-name" style="font-size: 1rem;">Bia Heineken Lon 330ml</div>
+        <div id="edit-prod-barcode" class="product-barcode">8930000000001</div>
+        <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 6px;">
+          Đã kiểm: <span id="edit-prod-current-val" style="color: var(--success); font-weight: 600;">1 thùng</span>
+        </div>
+      </div>
+      
+      <div class="input-group">
+        <label class="input-label">Nhập số lượng mới</label>
+        <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 8px; width: 100%;">
+          <input type="text" id="edit-new-qty-input" class="input-field" placeholder="Nhập số mới..." readonly style="text-align: right; font-size: 1.25rem; font-weight: 700; color: var(--success); background: rgba(15,23,42,0.8);">
+          <select id="edit-new-uom-select" class="unit-select-field" style="height: 100%;">
+            <!-- Load động ĐVT -->
+          </select>
+        </div>
+      </div>
+
+      <!-- Bảng phím số ảo Numpad cho Modal -->
+      <div class="modal-numpad-grid">
+        <button class="btn-modal-num" data-val="7">7</button>
+        <button class="btn-modal-num" data-val="8">8</button>
+        <button class="btn-modal-num" data-val="9">9</button>
+        
+        <button class="btn-modal-num" data-val="4">4</button>
+        <button class="btn-modal-num" data-val="5">5</button>
+        <button class="btn-modal-num" data-val="6">6</button>
+        
+        <button class="btn-modal-num" data-val="1">1</button>
+        <button class="btn-modal-num" data-val="2">2</button>
+        <button class="btn-modal-num" data-val="3">3</button>
+        
+        <button class="btn-modal-num" data-val="0">0</button>
+        <button class="btn-modal-num" data-val=".">.</button>
+        <button class="btn-modal-num btn-modal-backspace" data-val="backspace">⌫</button>
+      </div>
+
+      <div class="flex-row">
+        <button id="btn-close-edit" class="btn btn-secondary" style="flex: 1;">Hủy</button>
+        <button id="btn-save-edit" class="btn btn-primary" style="flex: 1;">Lưu</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- POPUP 3: DANH SÁCH CHỌN SẢN PHẨM CHI TIẾT (TRA CỨU THỦ CÔNG) -->
+  <div id="modal-product-search" class="modal-overlay">
+    <div class="modal-content glass" style="border: 1px solid var(--primary); max-width: 400px; display: flex; flex-direction: column; padding: 20px; gap: 16px;">
+      <div class="panel-header" style="margin-bottom: 0; display: flex; justify-content: space-between; align-items: center;">
+        <h3 class="modal-title" style="margin: 0; color: var(--primary);">🔍 Tra Cứu Sản Phẩm</h3>
+        <button id="btn-close-prod-search" style="background:none; border:none; color: var(--text-secondary); font-size: 1.25rem; cursor: pointer;">✕</button>
+      </div>
+      
+      <div class="input-group">
+        <label class="input-label" for="modal-group-select">Chọn nhóm sản phẩm</label>
+        <select id="modal-group-select" class="unit-select-field">
+          <option value="">-- Chọn nhóm --</option>
+        </select>
+      </div>
+      
+      <div class="input-group" style="margin-bottom: 8px;">
+        <label class="input-label" for="modal-item-select">Chọn sản phẩm</label>
+        <select id="modal-item-select" class="unit-select-field" disabled>
+          <option value="">-- Chọn sản phẩm --</option>
+        </select>
+      </div>
+
+      <div class="flex-row" style="gap: 8px;">
+        <button id="btn-cancel-prod-search" class="btn btn-secondary" style="flex: 1;">Hủy</button>
+        <button id="btn-confirm-prod-search" class="btn btn-primary" style="flex: 1;">Chọn</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  // Auto-configure Web App URL from Google Apps Script
+  const googleScriptUrl = "<?= scriptUrl ?>";
+  if (googleScriptUrl && !googleScriptUrl.startsWith("<" + "?")) {
+    localStorage.setItem("sheet_api_url", googleScriptUrl);
+  }
+// STOCKSCAN - Logic xử lý chính (app.js)
+
+// --- BIẾN TOÀN CỤC ---
+let currentEmployee = null;
+let currentWarehouse = null;
+let currentProduct = null;
+let localRecords = []; // [{employeeId, employeeName, warehouse, barcode, productName, count1, count2, count3, totalQty, defaultUnit, note, photoBase64, synced, timestamp}]
+let employeeList = {}; // Mã NV -> Tên NV
+let productCatalog = []; // Danh mục sản phẩm
+
+// Quản lý số lượng đang nhập bằng Numpad ảo
+let typedQtyStr = "";
+let selectedUnit = "";
+let selectedFactor = 1;
+
+// Bản ghi đang chỉnh sửa trong popup
+let editingRecordIdx = -1;
+
+// Cấu hình URL API Google Sheet
+// HƯỚNG DẪN: Bạn có thể dán đường dẫn Google Apps Script Web App (link /exec) của mình vào ô DEFAULT_SHEET_API_URL dưới đây.
+// Khi đó mọi thiết bị mở link Netlify sẽ tự động kết nối đến Google Sheets của bạn mà không cần cài đặt lại!
+const DEFAULT_SHEET_API_URL = "https://script.google.com/macros/s/AKfycbwZmsMY3Jq4i6q4RdyHDOImVkyDeLhQZ_RDjbl73O5951mlLOdNxsGaLYzjxY-MHkIR/exec"; 
+
+let sheetApiUrl = localStorage.getItem("sheet_api_url") || DEFAULT_SHEET_API_URL;
+if (sheetApiUrl === "<?= scriptUrl ?>" || sheetApiUrl.startsWith("<" + "?")) {
+  sheetApiUrl = DEFAULT_SHEET_API_URL;
+  localStorage.setItem("sheet_api_url", DEFAULT_SHEET_API_URL);
+}
+let isDataConnected = false;
+
+// Quản lý Camera Streams & Intervals toàn cục để tránh rò rỉ CPU (đơ/lag Chrome)
+let activeCameraStream = null;
+let activePhotoStream = null;
+let html5QrcodeScanner = null;
+let loginScanInterval = null;
+let barcodeScanInterval = null;
+
+// Quản lý máy quét CipherLab (Keyboard Wedge)
+let barcodeBuffer = "";
+let lastKeyTime = Date.now();
+
+// --- KHỞI CHẠY ỨNG DỤNG ---
+document.addEventListener("DOMContentLoaded", () => {
+  // Tự động cấu hình kết nối từ Link chia sẻ (?url=...)
+  const urlParams = new URLSearchParams(window.location.search);
+  const queryUrl = urlParams.get("url");
+  if (queryUrl && queryUrl.startsWith("https://script.google.com/")) {
+    localStorage.setItem("sheet_api_url", queryUrl);
+    sheetApiUrl = queryUrl;
+    
+    // Xóa tham số trên thanh địa chỉ để giữ URL ngắn gọn
+    const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+    window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
+  }
+
+  // Tải dữ liệu mẫu / offline database
+  loadInitialData();
+  
+  // Thiết lập các sự kiện giao diện
+  setupEventListeners();
+  
+  // Kiểm tra kết nối mạng
+  updateNetworkStatus();
+  
+  // Điền cấu hình URL hiện tại
+  if (sheetApiUrl) {
+    document.getElementById("sheet-api-url").value = sheetApiUrl;
+  }
+  
+  // Tự động tải từ Google Sheet nếu có mạng
+  if (navigator.onLine && sheetApiUrl) {
+    fetchDataFromGoogleSheet();
+  }
+
+  // Khởi động lắng nghe phím CipherLab / máy quét cầm tay
+  setupGlobalScannerListener();
+});
+
+// --- TẢI VÀ ĐỒNG BỘ DỮ LIỆU ---
+
+function loadInitialData() {
+  const localEmployees = localStorage.getItem("inventory_employees");
+  const localProducts = localStorage.getItem("inventory_products");
+  const storedRecords = localStorage.getItem("inventory_records");
+
+  if (localEmployees) employeeList = JSON.parse(localEmployees);
+  if (localProducts) productCatalog = JSON.parse(localProducts);
+  if (storedRecords) localRecords = JSON.parse(storedRecords);
+  
+  cleanupOldRecords();
+}
+
+function updateConnectionStatus(status) {
+  isDataConnected = status;
+  const badge = document.getElementById("network-badge");
+  const text = document.getElementById("network-text");
+  
+  if (!badge || !text) return;
+  
+  if (status) {
+    badge.className = "badge badge-online";
+    text.textContent = "Đã kết nối";
+  } else {
+    badge.className = "badge badge-offline";
+    text.textContent = "Chưa kết nối";
+  }
+}
+
+async function fetchDataFromGoogleSheet() {
+  if (!sheetApiUrl) {
+    updateConnectionStatus(false);
+    return;
+  }
+  
+  showToast("🔄 Đang tải danh mục từ Google Sheet...", "warning");
+  try {
+    const response = await fetch(sheetApiUrl + (sheetApiUrl.includes("?") ? "&" : "?") + "action=read_data");
+    const data = await response.json();
+    
+    if (data.success) {
+      employeeList = data.employees || {};
+      productCatalog = data.products || [];
+      
+      localStorage.setItem("inventory_employees", JSON.stringify(employeeList));
+      localStorage.setItem("inventory_products", JSON.stringify(productCatalog));
+      
+      showToast("✅ Đã kết nối & Cập nhật dữ liệu Google Sheets!", "success");
+      updateConnectionStatus(true);
+      
+      if (currentEmployee) {
+        const name = employeeList[currentEmployee] || currentEmployee;
+        document.getElementById("current-user-name").textContent = `${name} (${currentEmployee})`;
+      }
+      
+      // Tự động đồng bộ các bản ghi chưa đồng bộ
+      const unsynced = localRecords.some(r => !r.synced);
+      if (unsynced && navigator.onLine) {
+        document.getElementById("btn-sync-offline").style.display = "block";
+        syncUnsyncedRecords();
+      }
+    } else {
+      showToast("❌ Lỗi dữ liệu Google Sheet: " + data.error, "danger");
+      updateConnectionStatus(false);
+    }
+  } catch (err) {
+    console.error(err);
+    showToast("⚠️ Không kết nối được Google Sheet. Đang chạy chế độ Offline.", "warning");
+    updateConnectionStatus(false);
+  }
+}
+
+function updateNetworkStatus() {
+  if (!navigator.onLine) {
+    updateConnectionStatus(false);
+    document.getElementById("btn-sync-offline").style.display = "none";
+  } else {
+    if (sheetApiUrl) {
+      fetchDataFromGoogleSheet();
+    } else {
+      updateConnectionStatus(false);
+    }
+  }
+}
+
+window.addEventListener("online", updateNetworkStatus);
+window.addEventListener("offline", updateNetworkStatus);
+
+async function syncUnsyncedRecords() {
+  if (!sheetApiUrl || !navigator.onLine) return;
+  
+  const unsyncedRecords = localRecords.filter(r => !r.synced);
+  if (unsyncedRecords.length === 0) return;
+  
+  showToast(`🔄 Đang đồng bộ ${unsyncedRecords.length} bản ghi...`, "warning");
+  
+  let successCount = 0;
+  for (let record of unsyncedRecords) {
+    try {
+      await fetch(sheetApiUrl, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "save_scan",
+          employeeId: record.employeeId,
+          employeeName: record.employeeName,
+          warehouse: record.warehouse,
+          barcode: record.barcode,
+          productName: record.productName,
+          count1: record.count1,
+          count2: record.count2,
+          count3: record.count3,
+          totalQty: record.totalQty,
+          defaultUnit: record.defaultUnit,
+          note: record.note,
+          photoBase64: record.photoBase64 || ""
+        })
+      });
+      
+      record.synced = true;
+      successCount++;
+    } catch (err) {
+      console.error("Lỗi đồng bộ bản ghi:", err);
+    }
+  }
+  
+  localStorage.setItem("inventory_records", JSON.stringify(localRecords));
+  renderLogHistory();
+  
+  if (successCount > 0) {
+    showToast(`✅ Đã đồng bộ thành công ${successCount} bản ghi!`, "success");
+    document.getElementById("btn-sync-offline").style.display = "none";
+  }
+}
+
+async function syncDeleteRecordOnSheet(record) {
+  if (!sheetApiUrl || !navigator.onLine) return;
+  
+  try {
+    await fetch(sheetApiUrl, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "save_scan",
+        employeeId: record.employeeId,
+        employeeName: record.employeeName,
+        warehouse: record.warehouse,
+        barcode: record.barcode,
+        productName: record.productName,
+        count1: 0,
+        count2: 0,
+        count3: 0,
+        totalQty: 0,
+        defaultUnit: record.defaultUnit,
+        note: "Đã xóa dòng kiểm kê",
+        photoBase64: ""
+      })
+    });
+  } catch (err) {
+    console.error("Không đồng bộ xóa được dòng:", err);
+  }
+}
+
+// --- THIẾT LẬP CÁC SỰ KIỆN GIAO DIỆN ---
+function setupEventListeners() {
+  // Màn hình 1: Đăng nhập
+  document.getElementById("btn-toggle-login-cam").addEventListener("click", toggleLoginCamera);
+  document.getElementById("btn-login-manual").addEventListener("click", loginManual);
+  document.getElementById("employee-id-input").addEventListener("keypress", (e) => {
+    if (e.key === "Enter") loginManual();
+  });
+  
+  // Không tự động mở camera đăng nhập khi tải trang (chờ người dùng click nút)
+
+  // Màn hình 2: Chọn kho
+  document.querySelectorAll(".warehouse-card").forEach(card => {
+    card.addEventListener("click", () => {
+      const wh = card.getAttribute("data-warehouse");
+      selectWarehouse(wh);
+    });
+  });
+  
+  document.getElementById("btn-logout").addEventListener("click", logout);
+  document.getElementById("btn-logout-scan").addEventListener("click", logout);
+
+  // Màn hình 3: Quét kiểm kê chính
+  document.getElementById("btn-back-to-wh").addEventListener("click", backToWarehouseSelection);
+  document.getElementById("btn-toggle-camera").addEventListener("click", toggleProductCamera);
+  
+  // Nút Kính lúp mở Modal Tra cứu sản phẩm thủ công
+  document.getElementById("btn-manual-search").addEventListener("click", openProductSearchModal);
+  
+  // Gõ phím Enter trên ô nhập để thực hiện tìm trực tiếp nhanh (CipherLab)
+  // Đã loại bỏ vì barcode-input được set readonly, toàn bộ được xử lý bởi setupGlobalScannerListener
+
+  // Sự kiện nút X xóa nhanh mã vạch
+  const barcodeInput = document.getElementById("barcode-input");
+  
+  const clearBarcodeBtn = document.getElementById("btn-clear-barcode");
+  
+  barcodeInput.addEventListener("input", () => {
+    if (barcodeInput.value.length > 0) {
+      clearBarcodeBtn.style.display = "block";
+    } else {
+      clearBarcodeBtn.style.display = "none";
+    }
+    
+    // Xóa lựa chọn dropdown trái cây nếu người dùng nhập tay trong ô tìm kiếm
+    if (currentWarehouse === "Kho trái cây") {
+      document.getElementById("fruit-group-select").value = "";
+      document.getElementById("fruit-item-select").innerHTML = '<option value="">-- Chọn trái cây --</option>';
+      document.getElementById("fruit-item-select").disabled = true;
+    }
+  });
+
+  const clearBarcode = (e) => {
+    if (e) e.preventDefault();
+    barcodeInput.value = "";
+    clearBarcodeBtn.style.display = "none";
+    resetCurrentProductScan();
+  };
+  clearBarcodeBtn.addEventListener("click", clearBarcode);
+  clearBarcodeBtn.addEventListener("touchstart", clearBarcode);
+
+  // Nút Thêm sản phẩm ngoài danh mục thủ công (+)
+  document.getElementById("btn-add-temp-product").addEventListener("click", openAddTempProductModal);
+
+  // Bảng phím số ảo Numpad cho việc nhập số lượng kiểm kê
+  document.querySelectorAll(".btn-num").forEach(btn => {
+    btn.addEventListener("click", () => {
+      handleNumpadClick(btn.getAttribute("data-val"));
+    });
+  });
+
+  // Nút Lưu sản phẩm
+  document.getElementById("btn-save-record").addEventListener("click", saveCurrentScan);
+
+  // Sự kiện chọn nhóm & chọn sản phẩm Trái cây ngoài màn chính
+  document.getElementById("fruit-group-select").addEventListener("change", handleFruitGroupChange);
+  document.getElementById("fruit-item-select").addEventListener("change", handleFruitItemChange);
+
+  // Màn hình 4: Cài đặt
+  document.getElementById("btn-settings").addEventListener("click", showSettings);
+  document.getElementById("btn-close-settings").addEventListener("click", closeSettings);
+  document.getElementById("btn-save-api-url").addEventListener("click", saveApiUrl);
+  document.getElementById("btn-clear-local").addEventListener("click", clearLocalLogs);
+  document.getElementById("btn-export-csv").addEventListener("click", exportCSV);
+  document.getElementById("btn-sync-offline").addEventListener("click", syncUnsyncedRecords);
+
+  // Popup sản phẩm không có danh mục
+  document.getElementById("btn-close-not-found").addEventListener("click", closeNotFoundModal);
+  document.getElementById("btn-open-photo-cam").addEventListener("click", openPhotoCamera);
+  document.getElementById("btn-capture-photo").addEventListener("click", captureProductPhoto);
+  document.getElementById("btn-recapture").addEventListener("click", recaptureProductPhoto);
+  document.getElementById("photo-file-input").addEventListener("change", handlePhotoFileSelect);
+  document.getElementById("btn-save-not-found").addEventListener("click", saveUnidentifiedProduct);
+
+  // Popup Sửa số lượng lịch sử đếm (Nút Cancel / Save)
+  document.getElementById("btn-close-edit").addEventListener("click", closeEditHistoryModal);
+  document.getElementById("btn-save-edit").addEventListener("click", saveEditedHistoryRecord);
+
+  // Nút ảo Numpad của Modal Sửa số lượng
+  document.querySelectorAll(".btn-modal-num").forEach(btn => {
+    btn.addEventListener("click", () => {
+      handleModalNumpadClick(btn.getAttribute("data-val"));
+    });
+  });
+
+  // Popup Tra cứu sản phẩm thủ công (2 dropdowns liên kết)
+  document.getElementById("btn-close-prod-search").addEventListener("click", closeProductSearchModal);
+  document.getElementById("btn-cancel-prod-search").addEventListener("click", closeProductSearchModal);
+  document.getElementById("modal-group-select").addEventListener("change", handleModalGroupChange);
+  document.getElementById("btn-confirm-prod-search").addEventListener("click", confirmProductSearch);
+
+  // Sự kiện chuyển Tab điều hướng (Scan vs. Lịch sử)
+  document.getElementById("tab-btn-scan").addEventListener("click", () => switchTab("scan"));
+  document.getElementById("tab-btn-history").addEventListener("click", () => switchTab("history"));
+}
+
+// --- LOGIC ĐĂNG NHẬP CAMERA QR & CIPHERLAB ---
+
+function toggleLoginCamera() {
+  const wrapper = document.getElementById("login-qr-wrapper");
+  const btn = document.getElementById("btn-toggle-login-cam");
+  
+  if (wrapper.style.display === "none" || wrapper.classList.contains("hidden")) {
+    wrapper.style.display = "flex";
+    wrapper.classList.remove("hidden");
+    btn.innerHTML = "📷 Tắt Camera Quét";
+    btn.className = "btn btn-secondary";
+    startLoginQRScanner();
+  } else {
+    wrapper.style.display = "none";
+    wrapper.classList.add("hidden");
+    btn.innerHTML = "📷 Quét mã QR đăng nhập";
+    btn.className = "btn btn-primary";
+    stopAllCameraStreams();
+  }
+}
+
+async function startLoginQRScanner() {
+  const video = document.getElementById("login-scanner-video");
+  const loginInstructions = document.querySelector("#login-panel .scanner-instructions");
+  
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    loginInstructions.innerHTML = "⚠️ Trình duyệt chặn camera di động (Yêu cầu kết nối HTTPS).";
+    loginInstructions.style.color = "var(--danger)";
+    return;
+  }
+
+  try {
+    // Sử dụng CAMERA TRƯỚC để quét mã thẻ nhân viên (tiện lợi khi tự quét)
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "user", width: { ideal: 400 }, height: { ideal: 400 } }
+    });
+    activeCameraStream = stream;
+    video.srcObject = stream;
+    loginInstructions.textContent = "Đang quét QR thẻ nhân viên...";
+    
+    if (typeof jsQR === "undefined") {
+      await loadCDNLibrary("https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js");
+    }
+    
+    // Xóa interval giải mã cũ nếu có để tránh lag bộ nhớ CPU
+    if (loginScanInterval) clearInterval(loginScanInterval);
+    scanLoginQRFromStream(video);
+  } catch (err) {
+    console.error(err);
+    loginInstructions.textContent = "Không mở được camera. Nhập mã thủ công hoặc quét CipherLab.";
+  }
+}
+
+function scanLoginQRFromStream(video) {
+  if (!activeCameraStream) return;
+  
+  const canvas = document.createElement("canvas");
+  const context = canvas.getContext("2d");
+  
+  loginScanInterval = setInterval(() => {
+    if (video.paused || video.ended || !activeCameraStream) {
+      clearInterval(loginScanInterval);
+      return;
+    }
+    
+    if (video.videoWidth > 0) {
+      canvas.width = Math.min(320, video.videoWidth); // Giảm size vẽ canvas để tăng tốc xử lý CPU
+      canvas.height = Math.min(320, video.videoHeight);
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      
+      const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+      
+      if (typeof jsQR !== "undefined") {
+        const code = jsQR(imageData.data, imageData.width, imageData.height, {
+          inversionAttempts: "dontInvert",
+        });
+        if (code) {
+          const checkId = code.data.trim().toUpperCase();
+          if (employeeList[checkId]) {
+            clearInterval(loginScanInterval);
+            handleLoginSuccess(checkId);
+          } else {
+            showToast("Mã QR nhân viên không tồn tại!", "danger");
+          }
+        }
+      }
+    }
+  }, 300);
+}
+
+function loginManual() {
+  const code = document.getElementById("employee-id-input").value.trim().toUpperCase();
+  if (!code) {
+    showToast("Vui lòng nhập mã nhân viên!", "danger");
+    return;
+  }
+  handleLoginSuccess(code);
+}
+
+function handleLoginSuccess(employeeId) {
+  const cleanId = employeeId.trim().toUpperCase();
+  const employeeName = employeeList[cleanId];
+  if (!employeeName) {
+    showToast("Mã nhân viên không tồn tại trong hệ thống!", "danger");
+    return;
+  }
+  
+  stopAllCameraStreams();
+  cleanupOldRecords();
+  
+  document.getElementById("employee-id-input").value = "";
+  currentEmployee = cleanId;
+  
+  document.getElementById("current-user-name").textContent = `${employeeName} (${cleanId})`;
+  
+  document.getElementById("panel-login").classList.add("hidden");
+  document.getElementById("panel-warehouse").classList.remove("hidden");
+  
+  showToast(`Chào mừng ${employeeName}!`, "success");
+}
+
+function logout() {
+  stopAllCameraStreams();
+  
+  document.getElementById("employee-id-input").value = "";
+  
+  if (navigator.onLine && sheetApiUrl) {
+    syncUnsyncedRecords(); // Đồng bộ chạy ngầm các bản ghi ngày hôm nay khi thoát
+  }
+  
+  currentEmployee = null;
+  currentWarehouse = null;
+  
+  document.getElementById("panel-warehouse").classList.add("hidden");
+  document.getElementById("panel-scan").classList.add("hidden");
+  document.getElementById("panel-settings").classList.add("hidden");
+  document.getElementById("panel-login").classList.remove("hidden");
+  
+  // Reset camera UI state
+  const wrapper = document.getElementById("login-qr-wrapper");
+  const btn = document.getElementById("btn-toggle-login-cam");
+  wrapper.style.display = "none";
+  wrapper.classList.add("hidden");
+  btn.innerHTML = "📷 Quét mã QR đăng nhập";
+  btn.className = "btn btn-primary";
+}
+
+// --- THIẾT LẬP MÁY QUÉT TOÀN CỤC (CIPHERLAB / HAND SCANNER) ---
+function setupGlobalScannerListener() {
+  window.addEventListener("keydown", (e) => {
+    const activeEl = document.activeElement;
+    
+    // Nếu đang nhập tay ở các ô cấu hình hoặc ghi chú
+    if (activeEl) {
+      if (activeEl.id === "sheet-api-url" || activeEl.id === "not-found-note" || activeEl.id === "not-found-name-input" || activeEl.id === "not-found-barcode-input") {
+        return;
+      }
+      // Nếu đang focus vào ô mã vạch (hiện tại readonly nên không nhập trực tiếp được)
+      // Vẫn cho phép nhận phím từ CipherLab
+      if (activeEl.id === "barcode-input") {
+        // Do nothing, let global scanner handle it
+      }
+      else if (activeEl.classList.contains("input-field") && activeEl.id !== "employee-id-input") {
+        return;
+      }
+    }
+    
+    const currentTime = Date.now();
+    if (currentTime - lastKeyTime > 150) {
+      barcodeBuffer = "";
+    }
+    lastKeyTime = currentTime;
+    
+    if (e.key === "Enter") {
+      if (barcodeBuffer.length > 2) {
+        const scannedCode = barcodeBuffer.trim();
+        barcodeBuffer = "";
+        
+        e.preventDefault();
+        
+        if (!currentEmployee) {
+          document.getElementById("employee-id-input").value = scannedCode;
+          handleLoginSuccess(scannedCode);
+        } else {
+          document.getElementById("barcode-input").value = scannedCode;
+          // Hiển thị nút X xóa nhanh
+          document.getElementById("btn-clear-barcode").style.display = "block";
+          handleProductScan(scannedCode);
+        }
+      }
+    } else if (e.key.length === 1) {
+      barcodeBuffer += e.key;
+    }
+  });
+}
+
+// --- KHO & ĐƠN VỊ TÍNH ---
+
+function selectWarehouse(warehouseName) {
+  currentWarehouse = warehouseName;
+  document.getElementById("current-warehouse-title").textContent = warehouseName;
+  
+  document.getElementById("panel-warehouse").classList.add("hidden");
+  document.getElementById("panel-scan").classList.remove("hidden");
+  
+  resetCurrentProductScan();
+  renderLogHistory();
+  
+  const fruitSection = document.getElementById("fruit-picker-section");
+  const barcodeInp = document.getElementById("barcode-input");
+  if (warehouseName === "Kho trái cây") {
+    fruitSection.classList.remove("hidden");
+    buildFruitGroupSelect();
+    barcodeInp.setAttribute("inputmode", "numeric");
+    barcodeInp.placeholder = "Nhập mã PLU hoặc quét...";
+  } else {
+    fruitSection.classList.add("hidden");
+    barcodeInp.setAttribute("inputmode", "text");
+    barcodeInp.placeholder = "Quét mã, nhập mã cân PLU hoặc tên...";
+  }
+}
+
+function backToWarehouseSelection() {
+  stopAllCameraStreams();
+  currentWarehouse = null;
+  document.getElementById("panel-scan").classList.add("hidden");
+  document.getElementById("panel-warehouse").classList.remove("hidden");
+}
+
+function buildFruitGroupSelect() {
+  const groupSelect = document.getElementById("fruit-group-select");
+  const itemSelect = document.getElementById("fruit-item-select");
+  
+  groupSelect.innerHTML = '<option value="">-- Chọn nhóm --</option>';
+  itemSelect.innerHTML = '<option value="">-- Chọn trái cây --</option>';
+  itemSelect.disabled = true;
+  
+  const fruits = productCatalog.filter(p => p.category === "Trái cây");
+  
+  const groups = new Set();
+  fruits.forEach(f => {
+    const groupName = f.group ? f.group.trim() : f.name.trim().split(" ")[0];
+    if (groupName) groups.add(groupName);
+  });
+  
+  groups.forEach(g => {
+    const opt = document.createElement("option");
+    opt.value = g;
+    opt.textContent = g;
+    groupSelect.appendChild(opt);
+  });
+}
+
+function handleFruitGroupChange() {
+  const groupSelect = document.getElementById("fruit-group-select");
+  const itemSelect = document.getElementById("fruit-item-select");
+  const selectedGroup = groupSelect.value;
+  
+  itemSelect.innerHTML = '<option value="">-- Chọn trái cây --</option>';
+  
+  if (!selectedGroup) {
+    itemSelect.disabled = true;
+    return;
+  }
+  
+  const fruits = productCatalog.filter(p => {
+    if (p.category !== "Trái cây") return false;
+    const groupName = p.group ? p.group.trim() : p.name.trim().split(" ")[0];
+    return groupName === selectedGroup;
+  });
+  
+  itemSelect.disabled = false;
+  fruits.forEach(fruit => {
+    const opt = document.createElement("option");
+    opt.value = fruit.barcode;
+    opt.textContent = fruit.name;
+    itemSelect.appendChild(opt);
+  });
+}
+
+function handleFruitItemChange() {
+  const itemSelect = document.getElementById("fruit-item-select");
+  const barcode = itemSelect.value;
+  
+  if (barcode) {
+    const product = productCatalog.find(p => p.barcode === barcode);
+    if (product) {
+      loadProductToForm(product, true);
+    }
+  }
+}
+
+// --- BẢNG PHÍM SỐ ẢO (NUMPAD) ---
+
+function handleNumpadClick(val) {
+  if (val === "backspace") {
+    typedQtyStr = typedQtyStr.slice(0, -1);
+  } else if (val === ".") {
+    if (typedQtyStr === "") {
+      typedQtyStr = "0.";
+    } else if (!typedQtyStr.includes(".")) {
+      typedQtyStr += ".";
+    }
+  } else {
+    // Nhập số 0-9
+    if (typedQtyStr === "0") {
+      typedQtyStr = val;
+    } else {
+      typedQtyStr += val;
+    }
+  }
+  
+  document.getElementById("qty-display-val").textContent = typedQtyStr === "" ? "" : typedQtyStr;
+}
+
+// --- CAMERA QUÉT VẠCH SẢN PHẨM ---
+
+async function toggleProductCamera() {
+  const container = document.getElementById("scanner-viewport-container");
+  const video = document.getElementById("scanner-video");
+  const btnText = document.querySelector("#btn-toggle-camera span");
+  
+  if (!container.classList.contains("hidden")) {
+    stopAllCameraStreams();
+    container.classList.add("hidden");
+    btnText.textContent = "Bật Camera";
+    return;
+  }
+  
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    showToast("⚠️ Trình duyệt di động của bạn chặn Camera (Yêu cầu HTTPS).", "danger");
+    return;
+  }
+
+  container.classList.remove("hidden");
+  btnText.textContent = "Tắt Camera";
+  
+  try {
+    let stream;
+    try {
+      // Ưu tiên camera sau (trên điện thoại)
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment", width: { ideal: 640 }, height: { ideal: 480 } }
+      });
+    } catch (camErr) {
+      // Nếu không có camera sau (ví dụ máy tính laptop), dùng webcam/camera mặc định
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { width: { ideal: 640 }, height: { ideal: 480 } }
+      });
+    }
+    activeCameraStream = stream;
+    video.srcObject = stream;
+    
+    if (typeof Html5Qrcode === "undefined") {
+      await loadCDNLibrary("https://unpkg.com/html5-qrcode");
+    }
+    
+    if (barcodeScanInterval) clearInterval(barcodeScanInterval);
+    startBarcodeScanner();
+  } catch (err) {
+    console.error(err);
+    showToast("❌ Không thể mở camera. Vui lòng cấp quyền.", "danger");
+    container.classList.add("hidden");
+    btnText.textContent = "Bật Camera";
+  }
+}
+
+function startBarcodeScanner() {
+  try {
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d");
+    const video = document.getElementById("scanner-video");
+    
+    barcodeScanInterval = setInterval(() => {
+      if (!activeCameraStream || video.paused || video.ended) {
+        clearInterval(barcodeScanInterval);
+        return;
+      }
+      
+      if (video.videoWidth > 0) {
+        canvas.width = Math.min(320, video.videoWidth);
+        canvas.height = Math.min(240, video.videoHeight);
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        if ('BarcodeDetector' in window) {
+          const barcodeDetector = new BarcodeDetector({ formats: ['code_128', 'ean_13', 'ean_8', 'qr_code', 'upc_a'] });
+          barcodeDetector.detect(canvas)
+            .then(barcodes => {
+              if (barcodes.length > 0) {
+                // Quét thành công!
+                const code = barcodes[0].rawValue;
+                handleProductScan(code);
+                
+                // TỰ ĐỘNG TẮT CAMERA LẬP TỨC
+                stopAllCameraStreams();
+                document.getElementById("scanner-viewport-container").classList.add("hidden");
+                document.querySelector("#btn-toggle-camera span").textContent = "Bật Camera";
+              }
+            })
+            .catch(err => console.error(err));
+        }
+      }
+    }, 400);
+  } catch (e) {
+    console.log("Scanner error:", e);
+  }
+}
+
+// --- TRA CỨU SẢN PHẨM & NẠP FORM ---
+
+// Hàm quickSearchProduct đã bị xóa vì barcode-input là readonly và toàn bộ thao tác do handleProductScan và setupGlobalScannerListener xử lý.
+
+function handleProductScan(barcode) {
+  const searchLower = barcode.toLowerCase();
+  
+  // 1. Tìm chính xác theo mã vạch
+  let product = productCatalog.find(p => p.barcode === barcode);
+  
+  // 2. Tìm theo mã cân PLU (đối với Trái cây)
+  if (!product) {
+    product = productCatalog.find(p => p.plu === barcode);
+  }
+  
+  // 3. Tìm tương đối theo tên sản phẩm
+  if (!product) {
+    product = productCatalog.find(p => p.name.toLowerCase().includes(searchLower));
+  }
+  
+  if (product) {
+    loadProductToForm(product);
+  } else {
+    openNotFoundModal(barcode);
+  }
+}
+
+function loadProductToForm(product, fromDropdown = false) {
+  currentProduct = product;
+  document.getElementById("barcode-input").blur();
+  
+  // Hiển thị nhãn thông tin sản phẩm và ẩn placeholder Chờ quét
+  document.getElementById("prod-name").textContent = product.name;
+  document.getElementById("prod-name").style.color = "var(--text-primary)";
+  document.getElementById("prod-barcode").textContent = `${product.plu ? "Mã PLU: " + product.plu + " | " : ""}Mã vạch: ${product.barcode}`;
+  
+  const categoryBadge = document.getElementById("prod-category");
+  categoryBadge.textContent = product.category;
+  categoryBadge.classList.remove("hidden");
+  
+  if (fromDropdown) {
+    document.getElementById("barcode-input").value = "";
+    document.getElementById("btn-clear-barcode").style.display = "none";
+  } else {
+    document.getElementById("barcode-input").value = product.plu || product.barcode;
+    document.getElementById("btn-clear-barcode").style.display = "block";
+  }
+
+  // Build các nút ĐVT xếp dọc bên phải bảng số
+  buildUnitButtons(product);
+
+  // Reset phím ảo về rỗng để bắt đầu nhập mới
+  typedQtyStr = "";
+  document.getElementById("qty-display-val").textContent = "";
+  
+  // Đồng bộ dropdown Trái cây
+  const groupSelect = document.getElementById("fruit-group-select");
+  const itemSelect = document.getElementById("fruit-item-select");
+  
+  if (product.category === "Trái cây" && !fromDropdown) {
+    const groupName = product.group ? product.group.trim() : product.name.trim().split(" ")[0];
+    groupSelect.value = groupName;
+    handleFruitGroupChange();
+    itemSelect.value = product.barcode;
+  } else if (!fromDropdown) {
+    groupSelect.value = "";
+    itemSelect.innerHTML = '<option value="">-- Chọn trái cây --</option>';
+    itemSelect.disabled = true;
+  }
+  
+  showToast(`🔍 Đã chọn: ${product.name}`, "success");
+}
+
+function buildUnitButtons(product) {
+  const column = document.getElementById("uom-button-column");
+  column.innerHTML = "";
+  
+  const unitList = [];
+  
+  // 1. Thêm ĐVT mặc định gốc
+  unitList.push({
+    name: product.defaultUnit,
+    factor: 1,
+    displayName: `${product.defaultUnit} *`
+  });
+  
+  // 2. Thêm các ĐVT quy đổi khác và sắp xếp tăng dần theo hệ số factor
+  if (product.units && product.units.length > 0) {
+    const extraUnits = [...product.units].sort((a, b) => a.factor - b.factor);
+    extraUnits.forEach(u => {
+      unitList.push({
+        name: u.name,
+        factor: u.factor,
+        displayName: `${u.name} (${u.factor})`
+      });
+    });
+  }
+  
+  // Quy tắc ưu tiên theo Kho ban đầu:
+  let initialSelectIdx = 0;
+  if (currentWarehouse === "Kho thương mại" && unitList.length > 1) {
+    initialSelectIdx = unitList.length - 1; // Lấy đơn vị lớn nhất ở cuối danh sách đã sắp xếp
+  }
+  
+  // Tạo các nút ĐVT xếp dọc
+  unitList.forEach((unit, idx) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "btn-uom";
+    btn.textContent = unit.displayName;
+    btn.setAttribute("data-unit", unit.name);
+    btn.setAttribute("data-factor", unit.factor);
+    
+    if (idx === initialSelectIdx) {
+      btn.classList.add("selected");
+      selectedUnit = unit.name;
+      selectedFactor = unit.factor;
+      document.getElementById("qty-display-unit").textContent = unit.displayName;
+    }
+    
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".btn-uom").forEach(b => b.classList.remove("selected"));
+      btn.classList.add("selected");
+      
+      selectedUnit = unit.name;
+      selectedFactor = unit.factor;
+      document.getElementById("qty-display-unit").textContent = unit.displayName;
+      
+      showToast(`Đã đổi sang: ${unit.displayName}`, "success");
+    });
+    
+    column.appendChild(btn);
+  });
+}
+
+// Trả form nhập liệu về trạng thái chờ quét ban đầu (nhưng Numpad vẫn cố định hiện)
+function resetCurrentProductScan() {
+  currentProduct = null;
+  
+  // Reset thông tin sản phẩm về trạng thái chờ
+  document.getElementById("prod-name").textContent = "Chờ quét sản phẩm...";
+  document.getElementById("prod-name").style.color = "var(--text-secondary)";
+  document.getElementById("prod-barcode").textContent = "Vui lòng quét hoặc nhập mã vạch để bắt đầu";
+  
+  const categoryBadge = document.getElementById("prod-category");
+  categoryBadge.classList.add("hidden");
+  
+  // Reset số lượng hiển thị về rỗng
+  typedQtyStr = "";
+  document.getElementById("qty-display-val").textContent = "";
+  document.getElementById("qty-display-unit").textContent = "-";
+  
+  // Reset cột ĐVT về nút rỗng mặc định
+  const column = document.getElementById("uom-button-column");
+  column.innerHTML = '<button class="btn-uom selected" data-unit="default" data-factor="1" disabled>-</button>';
+  
+  // Reset dropdown trái cây nhóm & item
+  const groupSelect = document.getElementById("fruit-group-select");
+  const itemSelect = document.getElementById("fruit-item-select");
+  if (groupSelect && itemSelect) {
+    groupSelect.value = "";
+    itemSelect.innerHTML = '<option value="">-- Chọn trái cây --</option>';
+    itemSelect.disabled = true;
+  }
+}
+
+// --- LOGIC LƯU LƯỢT ĐẾM VÀ TỰ PHÂN TUYẾN CHẠY NGẦM ---
+
+function parseCountToDefaultQty(product, countStr) {
+  if (!countStr) return 0;
+  
+  const val = parseFloat(countStr) || 0;
+  const cleanStr = countStr.toString().trim();
+  
+  // Lấy phần chữ ở sau số
+  const unitMatch = cleanStr.match(/[a-zA-Z\sÀ-ỹ]+$/);
+  const unitName = unitMatch ? unitMatch[0].trim().toLowerCase() : "";
+  
+  if (!unitName || unitName === product.defaultUnit.toLowerCase()) {
+    return val;
+  }
+  
+  // Tìm trong product.units
+  if (product.units && product.units.length > 0) {
+    const unitObj = product.units.find(u => u.name.toLowerCase() === unitName);
+    if (unitObj) {
+      return val * unitObj.factor;
+    }
+  }
+  
+  return val;
+}
+
+// --- LOGIC LƯU LƯỢT ĐẾM VÀ TỰ PHÂN TUYẾN CHẠY NGẦM ---
+
+async function saveCurrentScan() {
+  if (!currentProduct) {
+    showToast("Vui lòng quét hoặc nhập mã sản phẩm trước khi lưu!", "warning");
+    return;
+  }
+  
+  if (!currentEmployee || !currentWarehouse) {
+    showToast("Lỗi thông tin nhân viên hoặc kho!", "danger");
+    return;
+  }
+  
+  if (typedQtyStr === "") {
+    showToast("Vui lòng nhập số lượng kiểm kê!", "warning");
+    return;
+  }
+  const quantity = parseFloat(typedQtyStr) || 0;
+  if (quantity <= 0) {
+    showToast("Số lượng đếm phải lớn hơn 0!", "warning");
+    return;
+  }
+  
+  const qtyStr = quantity + " " + selectedUnit;
+  
+  // Tìm xem sản phẩm đã có lịch sử đếm nào trong phiên của nhân viên tại kho này chưa
+  let recordIdx = localRecords.findIndex(r => 
+    r.employeeId === currentEmployee && 
+    r.warehouse === currentWarehouse && 
+    r.barcode === currentProduct.barcode
+  );
+  
+  const employeeName = employeeList[currentEmployee] || currentEmployee;
+  let rec;
+  
+  if (recordIdx !== -1) {
+    rec = localRecords[recordIdx];
+    
+    // Logic tự phân tuyến chạy ngầm vào các slot trống
+    if (!rec.count1) {
+      rec.count1 = qtyStr;
+      rec.timestamp1 = new Date().toISOString();
+    } else if (!rec.count2) {
+      rec.count2 = qtyStr;
+      rec.timestamp2 = new Date().toISOString();
+    } else if (!rec.count3) {
+      rec.count3 = qtyStr;
+      rec.timestamp3 = new Date().toISOString();
+    } else {
+      // Cả 3 slot đều đã đầy -> Cộng dồn vào Lần 3
+      rec.count3 = rec.count3 + " + " + qtyStr;
+      rec.timestamp3 = new Date().toISOString();
+    }
+  } else {
+    // Lần đầu đếm sản phẩm này -> Gán vào Lần 1
+    rec = {
+      employeeId: currentEmployee,
+      employeeName: employeeName,
+      warehouse: currentWarehouse,
+      barcode: currentProduct.barcode,
+      productName: currentProduct.name,
+      count1: qtyStr,
+      timestamp1: new Date().toISOString(),
+      count2: "",
+      count3: "",
+      totalQty: 0,
+      defaultUnit: currentProduct.defaultUnit,
+      note: "",
+      photoBase64: "",
+      synced: false,
+      timestamp: new Date().toISOString()
+    };
+    localRecords.push(rec);
+  }
+  
+  // Tính tổng số lượng quy đổi về ĐVT mặc định gốc
+  const q1 = parseCountToDefaultQty(currentProduct, rec.count1);
+  const q2 = parseCountToDefaultQty(currentProduct, rec.count2);
+  let q3 = 0;
+  if (rec.count3) {
+    const parts = rec.count3.split("+");
+    parts.forEach(p => {
+      q3 += parseCountToDefaultQty(currentProduct, p.trim());
+    });
+  }
+  rec.totalQty = q1 + q2 + q3;
+  rec.synced = false;
+  rec.timestamp = new Date().toISOString();
+  
+  localStorage.setItem("inventory_records", JSON.stringify(localRecords));
+  
+  // Cập nhật danh sách hiển thị
+  renderLogHistory();
+  
+  showToast(`💾 Đã lưu: ${qtyStr}`, "success");
+  
+  // Đồng bộ lên Sheets ngay lập tức
+  if (navigator.onLine && sheetApiUrl) {
+    syncUnsyncedRecords();
+  }
+  
+  // TỰ ĐỘNG RESET FORM VỀ TRẮNG ĐỂ SẴN SÀNG CHO LẦN QUÉT KẾ TIẾP
+  const barcodeInp = document.getElementById("barcode-input");
+  barcodeInp.value = "";
+  document.getElementById("btn-clear-barcode").style.display = "none";
+  resetCurrentProductScan();
+}
+
+// --- POPUP CHỈNH SỬA SỐ LƯỢNG LỊCH SỬ ---
+
+let editingSlot = null; // 1, 2, 3
+let editingSubIdx = undefined;
+let editTypedQtyStr = "";
+
+function openEditHistoryModal(barcode, slot, subIdx) {
+  editingRecordIdx = localRecords.findIndex(r => 
+    r.employeeId === currentEmployee && 
+    r.warehouse === currentWarehouse && 
+    r.barcode === barcode
+  );
+  
+  if (editingRecordIdx === -1) return;
+  const record = localRecords[editingRecordIdx];
+  
+  editingSlot = slot;
+  editingSubIdx = subIdx;
+  
+  document.getElementById("edit-prod-name").textContent = record.productName;
+  document.getElementById("edit-prod-barcode").textContent = `Mã vạch: ${record.barcode}`;
+  
+  // Lấy giá trị của slot hiện tại
+  let currentVal = "Trống";
+  if (slot === 1) currentVal = record.count1 || "Trống";
+  else if (slot === 2) currentVal = record.count2 || "Trống";
+  else if (slot === 3) {
+    if (subIdx !== undefined && record.count3) {
+      const parts = record.count3.split("+");
+      currentVal = parts[subIdx] ? parts[subIdx].trim() : "Trống";
+    } else {
+      currentVal = record.count3 || "Trống";
+    }
+  }
+  document.getElementById("edit-prod-current-val").textContent = currentVal;
+  
+  // Tách số lượng và đơn vị từ giá trị hiện tại để đặt mặc định
+  let initialQty = "";
+  let initialUnit = record.defaultUnit;
+  if (currentVal !== "Trống") {
+    const parts = currentVal.trim().split(" ");
+    if (parts.length >= 1) initialQty = parts[0];
+    if (parts.length >= 2) initialUnit = parts[1];
+  }
+  
+  editTypedQtyStr = "";
+  document.getElementById("edit-new-qty-input").value = editTypedQtyStr;
+  
+  // Tạo danh sách đơn vị tính
+  const uomSelect = document.getElementById("edit-new-uom-select");
+  uomSelect.innerHTML = "";
+  
+  const product = productCatalog.find(p => p.barcode === barcode) || { defaultUnit: record.defaultUnit, units: [] };
+  
+  // 1. ĐVT mặc định
+  const optDefault = document.createElement("option");
+  optDefault.value = product.defaultUnit;
+  optDefault.textContent = product.defaultUnit;
+  if (product.defaultUnit === initialUnit) optDefault.selected = true;
+  uomSelect.appendChild(optDefault);
+  
+  // 2. Các ĐVT quy đổi khác
+  if (product.units) {
+    product.units.forEach(u => {
+      const opt = document.createElement("option");
+      opt.value = u.name;
+      opt.textContent = u.name;
+      if (u.name === initialUnit) opt.selected = true;
+      uomSelect.appendChild(opt);
+    });
+  }
+  
+  document.getElementById("modal-edit-history").classList.add("show");
+}
+
+function closeEditHistoryModal() {
+  document.getElementById("modal-edit-history").classList.remove("show");
+  editingRecordIdx = -1;
+  editingSlot = null;
+  editingSubIdx = undefined;
+}
+
+function handleModalNumpadClick(val) {
+  if (val === "backspace") {
+    editTypedQtyStr = editTypedQtyStr.slice(0, -1);
+  } else if (val === ".") {
+    if (editTypedQtyStr === "") {
+      editTypedQtyStr = "0.";
+    } else if (!editTypedQtyStr.includes(".")) {
+      editTypedQtyStr += ".";
+    }
+  } else {
+    if (editTypedQtyStr === "0") {
+      editTypedQtyStr = val;
+    } else {
+      editTypedQtyStr += val;
+    }
+  }
+  document.getElementById("edit-new-qty-input").value = editTypedQtyStr;
+}
+
+async function saveEditedHistoryRecord() {
+  if (editingRecordIdx === -1 || editingSlot === null) return;
+  
+  const rec = localRecords[editingRecordIdx];
+  const newQtyVal = document.getElementById("edit-new-qty-input").value.trim();
+  if (newQtyVal === "") {
+    showToast("Vui lòng nhập số lượng mới!", "warning");
+    return;
+  }
+  const newUom = document.getElementById("edit-new-uom-select").value;
+  
+  const isDeletion = parseFloat(newQtyVal) <= 0;
+  
+  let newQtyStr = isDeletion ? "" : (parseFloat(newQtyVal) + " " + newUom);
+  
+  if (editingSlot === 1) {
+    rec.count1 = newQtyStr;
+    if (!newQtyStr) rec.timestamp1 = "";
+    else rec.timestamp1 = new Date().toISOString();
+  } else if (editingSlot === 2) {
+    rec.count2 = newQtyStr;
+    if (!newQtyStr) rec.timestamp2 = "";
+    else rec.timestamp2 = new Date().toISOString();
+  } else if (editingSlot === 3) {
+    if (editingSubIdx !== undefined && rec.count3) {
+      const parts = rec.count3.split("+").map(p => p.trim());
+      if (isDeletion) {
+        parts.splice(editingSubIdx, 1);
+      } else {
+        parts[editingSubIdx] = newQtyStr;
+      }
+      rec.count3 = parts.join(" + ").trim();
+    } else {
+      rec.count3 = newQtyStr;
+    }
+    if (!rec.count3) rec.timestamp3 = "";
+    else rec.timestamp3 = new Date().toISOString();
+  }
+  
+  // Quy đổi tổng số lượng về ĐVT mặc định gốc
+  const product = productCatalog.find(p => p.barcode === rec.barcode) || { defaultUnit: rec.defaultUnit, units: [] };
+  const q1 = parseCountToDefaultQty(product, rec.count1);
+  const q2 = parseCountToDefaultQty(product, rec.count2);
+  let q3 = 0;
+  if (rec.count3) {
+    const parts = rec.count3.split("+");
+    parts.forEach(p => {
+      q3 += parseCountToDefaultQty(product, p.trim());
+    });
+  }
+  
+  rec.totalQty = q1 + q2 + q3;
+  rec.synced = false;
+  rec.timestamp = new Date().toISOString();
+  
+  // Nếu cả 3 slot đều trống -> Xóa dòng hoàn toàn
+  if (!rec.count1 && !rec.count2 && !rec.count3) {
+    const deletedRecord = localRecords.splice(editingRecordIdx, 1)[0];
+    localStorage.setItem("inventory_records", JSON.stringify(localRecords));
+    
+    if (currentProduct && currentProduct.barcode === rec.barcode) {
+      resetCurrentProductScan();
+    }
+    
+    closeEditHistoryModal();
+    renderLogHistory();
+    showToast(`🗑️ Đã xóa bản ghi của ${rec.productName}!`, "warning");
+    
+    if (navigator.onLine && sheetApiUrl) {
+      await syncDeleteRecordOnSheet(deletedRecord);
+    }
+    return;
+  }
+  
+  localStorage.setItem("inventory_records", JSON.stringify(localRecords));
+  
+  closeEditHistoryModal();
+  renderLogHistory();
+  showToast("✏️ Đã lưu cập nhật số lượng!", "success");
+  
+  if (navigator.onLine && sheetApiUrl) {
+    syncUnsyncedRecords();
+  }
+}
+
+async function deleteHistoryRecord(barcode, slot, subIdx) {
+  const idx = localRecords.findIndex(r => 
+    r.employeeId === currentEmployee && 
+    r.warehouse === currentWarehouse && 
+    r.barcode === barcode
+  );
+  
+  if (idx === -1) return;
+  const rec = localRecords[idx];
+  
+  let countName = `Lần ${slot}`;
+  if (slot === 3 && subIdx !== undefined) countName = `Lần 3 (lượt ${subIdx+1})`;
+  
+  if (confirm(`Bạn có chắc muốn xóa lượt kiểm kê ${countName} của sản phẩm:\n"${rec.productName}"?`)) {
+    if (slot === 1) {
+      rec.count1 = "";
+      rec.timestamp1 = "";
+    } else if (slot === 2) {
+      rec.count2 = "";
+      rec.timestamp2 = "";
+    } else if (slot === 3) {
+      if (subIdx !== undefined && rec.count3) {
+        const parts = rec.count3.split("+").map(p => p.trim());
+        parts.splice(subIdx, 1);
+        rec.count3 = parts.join(" + ").trim();
+      } else {
+        rec.count3 = "";
+      }
+      if (!rec.count3) rec.timestamp3 = "";
+    }
+    
+    // Quy đổi tổng số lượng về ĐVT mặc định gốc
+    const product = productCatalog.find(p => p.barcode === rec.barcode) || { defaultUnit: rec.defaultUnit, units: [] };
+    const q1 = parseCountToDefaultQty(product, rec.count1);
+    const q2 = parseCountToDefaultQty(product, rec.count2);
+    let q3 = 0;
+    if (rec.count3) {
+      const parts = rec.count3.split("+");
+      parts.forEach(p => {
+        q3 += parseCountToDefaultQty(product, p.trim());
+      });
+    }
+    
+    rec.totalQty = q1 + q2 + q3;
+    rec.synced = false;
+    rec.timestamp = new Date().toISOString();
+    
+    // Nếu cả 3 slot đều trống -> Xóa dòng hoàn toàn
+    if (!rec.count1 && !rec.count2 && !rec.count3) {
+      const deletedRecord = localRecords.splice(idx, 1)[0];
+      localStorage.setItem("inventory_records", JSON.stringify(localRecords));
+      
+      if (currentProduct && currentProduct.barcode === barcode) {
+        resetCurrentProductScan();
+      }
+      
+      renderLogHistory();
+      showToast(`🗑️ Đã xóa sản phẩm khỏi danh sách!`, "warning");
+      
+      if (navigator.onLine && sheetApiUrl) {
+        await syncDeleteRecordOnSheet(deletedRecord);
+      }
+      return;
+    }
+    
+    localStorage.setItem("inventory_records", JSON.stringify(localRecords));
+    renderLogHistory();
+    showToast(`🗑️ Đã xóa lượt kiểm kê ${countName}!`, "warning");
+    
+    if (navigator.onLine && sheetApiUrl) {
+      syncUnsyncedRecords();
+    }
+  }
+}
+
+// --- RENDER DANH SÁCH LỊCH SỬ (MỚI NHẤT TRÊN CÙNG - 1 DÒNG SIÊU GỌN) ---
+
+function renderLogHistory() {
+  const logList = document.getElementById("recent-log-list");
+  const previewLogList = document.getElementById("preview-log-list");
+  const badge = document.getElementById("records-count-badge");
+  
+  logList.innerHTML = "";
+  if (previewLogList) {
+    previewLogList.innerHTML = "";
+  }
+  
+  const filtered = localRecords.filter(r => 
+    r.employeeId === currentEmployee && 
+    r.warehouse === currentWarehouse
+  );
+  
+  // Phân rã (Flatten) các lượt đếm của từng record thành các dòng quét độc lập
+  const activeScans = [];
+  filtered.forEach(rec => {
+    if (rec.count1) {
+      activeScans.push({
+        barcode: rec.barcode,
+        productName: rec.productName,
+        qtyStr: rec.count1,
+        slot: 1,
+        subIdx: null,
+        timestamp: rec.timestamp1 || rec.timestamp,
+        synced: rec.synced,
+        record: rec
+      });
+    }
+    if (rec.count2) {
+      activeScans.push({
+        barcode: rec.barcode,
+        productName: rec.productName,
+        qtyStr: rec.count2,
+        slot: 2,
+        subIdx: null,
+        timestamp: rec.timestamp2 || rec.timestamp,
+        synced: rec.synced,
+        record: rec
+      });
+    }
+    if (rec.count3) {
+      const parts = rec.count3.split("+");
+      parts.forEach((p, idx) => {
+        if (p.trim()) {
+          activeScans.push({
+            barcode: rec.barcode,
+            productName: rec.productName,
+            qtyStr: p.trim(),
+            slot: 3,
+            subIdx: idx,
+            timestamp: rec.timestamp3 || rec.timestamp,
+            synced: rec.synced,
+            record: rec
+          });
+        }
+      });
+    }
+  });
+  
+  badge.textContent = `${activeScans.length} lượt`;
+  
+  if (activeScans.length === 0) {
+    const emptyMsg = `<div style="text-align:center; padding: 20px; color: var(--text-secondary); font-size: 0.8rem;">Chưa có sản phẩm nào được kiểm kê trong kho này.</div>`;
+    logList.innerHTML = emptyMsg;
+    if (previewLogList) {
+      previewLogList.innerHTML = emptyMsg;
+    }
+    return;
+  }
+  
+  // SẮP XẾP: Mới nhất lên đầu (timestamp giảm dần)
+  activeScans.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  
+  activeScans.forEach((scan, index) => {
+    const isUnsynced = !scan.record.synced;
+    const syncIndicator = isUnsynced 
+      ? `<span style="color: var(--warning); background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.25); padding: 1px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: 600; white-space: nowrap; flex-shrink: 0;">⏳ Chờ sync</span>` 
+      : `<span style="color: var(--success); background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.25); padding: 1px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: 600; white-space: nowrap; flex-shrink: 0;">✓ Đã lưu</span>`;
+    
+    // Định dạng giờ lưu
+    let timeStr = "";
+    try {
+      const d = new Date(scan.timestamp);
+      timeStr = `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}:${d.getSeconds().toString().padStart(2, '0')}`;
+    } catch (e) {
+      timeStr = "Không rõ";
+    }
+    
+    const subIdxParam = scan.subIdx !== null ? scan.subIdx : 'undefined';
+    
+    const itemHtml = `
+      <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0;">
+        <span class="log-item-name" style="font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; font-size: 0.92rem; width: 100%;">${scan.productName}</span>
+        <span class="log-item-details" style="font-size: 0.72rem; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; width: 100%;">Mã: ${scan.barcode} | L${scan.slot}${scan.subIdx !== null ? '-' + (scan.subIdx+1) : ''} | Lúc ${timeStr}</span>
+        <div style="display: flex; align-items: center; margin-top: 1px;">
+          ${syncIndicator}
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px; margin-left: 12px;">
+        <div style="text-align: right; min-width: 70px; display: flex; flex-direction: column; justify-content: center; gap: 1px;">
+          <span class="log-item-total" style="font-weight: 700; color: var(--success); font-size: 1.05rem; display:block; line-height: 1.1; white-space: nowrap;">${scan.qtyStr}</span>
+        </div>
+        <div style="display: flex; gap: 4px;">
+          <button class="btn-icon-action btn-log-edit" onclick="openEditHistoryModal('${scan.barcode}', ${scan.slot}, ${subIdxParam})" title="Sửa lượt quét" style="background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 8px; width: 34px; height: 34px; display: flex; justify-content: center; align-items: center; cursor: pointer; color: #a5b4fc; font-size: 0.9rem; padding: 0;">✏️</button>
+          <button class="btn-icon-action btn-log-delete" onclick="deleteHistoryRecord('${scan.barcode}', ${scan.slot}, ${subIdxParam})" title="Xóa lượt quét" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 8px; width: 34px; height: 34px; display: flex; justify-content: center; align-items: center; cursor: pointer; color: #fca5a5; font-size: 0.9rem; padding: 0;">🗑️</button>
+        </div>
+      </div>
+    `;
+    
+    // Thêm vào danh sách tab Lịch Sử (Full)
+    const item = document.createElement("div");
+    item.className = "log-item";
+    item.innerHTML = itemHtml;
+    logList.appendChild(item);
+    
+    // Thêm vào danh sách xem nhanh ở tab Kiểm Kê (tối đa 6 dòng đầu tiên)
+    if (previewLogList && index < 6) {
+      const previewItem = document.createElement("div");
+      previewItem.className = "log-item";
+      previewItem.innerHTML = itemHtml;
+      previewLogList.appendChild(previewItem);
+    }
+  });
+}
+
+// --- POPUP CHỤP ẢNH HÀNG NGOÀI DANH MỤC ---
+
+let currentUnidentifiedBarcode = "";
+let capturedPhotoBase64 = "";
+
+function openNotFoundModal(barcode) {
+  capturedPhotoBase64 = "";
+  document.getElementById("barcode-input").blur();
+  
+  // Tiêu đề mặc định
+  document.querySelector("#modal-not-found .modal-title").textContent = "🚨 Hàng hóa không có trong dữ liệu";
+  
+  document.getElementById("not-found-barcode-input").value = barcode || "";
+  document.getElementById("not-found-name-input").value = "";
+  document.getElementById("not-found-note").value = "";
+  
+  stopPhotoCamera();
+  document.getElementById("photo-placeholder").classList.remove("hidden");
+  document.getElementById("photo-capture-video").classList.add("hidden");
+  document.getElementById("photo-canvas").classList.add("hidden");
+  document.getElementById("photo-preview").classList.add("hidden");
+  document.getElementById("btn-capture-photo").classList.add("hidden");
+  document.getElementById("btn-open-photo-cam").classList.remove("hidden");
+  document.getElementById("btn-recapture").classList.add("hidden");
+  
+  document.getElementById("modal-not-found").classList.add("show");
+}
+
+function openAddTempProductModal() {
+  const barcode = document.getElementById("barcode-input").value.trim();
+  openNotFoundModal(barcode);
+  
+  // Thay đổi tiêu đề khi thêm thủ công ngoài danh mục
+  document.querySelector("#modal-not-found .modal-title").textContent = "➕ Thêm sản phẩm ngoài danh mục";
+}
+
+function closeNotFoundModal() {
+  stopPhotoCamera();
+  document.getElementById("modal-not-found").classList.remove("show");
+  document.getElementById("barcode-input").value = "";
+  document.getElementById("btn-clear-barcode").style.display = "none";
+}
+
+async function openPhotoCamera() {
+  const video = document.getElementById("photo-capture-video");
+  const placeholder = document.getElementById("photo-placeholder");
+  const captureBtn = document.getElementById("btn-capture-photo");
+  const openBtn = document.getElementById("btn-open-photo-cam");
+  
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    showToast("⚠️ Trình duyệt di động của bạn chặn Camera (Yêu cầu HTTPS).", "danger");
+    return;
+  }
+  
+  try {
+    let stream;
+    try {
+      // Ưu tiên camera sau (trên điện thoại)
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" }
+      });
+    } catch (camErr) {
+      // Nếu lỗi (ví dụ chạy trên laptop không có camera sau), dùng camera mặc định/webcam
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: true
+      });
+    }
+    activePhotoStream = stream;
+    video.srcObject = stream;
+    
+    placeholder.classList.add("hidden");
+    video.classList.remove("hidden");
+    captureBtn.classList.remove("hidden");
+    openBtn.classList.add("hidden");
+  } catch (err) {
+    console.error(err);
+    showToast("Không thể khởi động camera sau để chụp ảnh.", "danger");
+  }
+}
+
+function captureProductPhoto() {
+  const video = document.getElementById("photo-capture-video");
+  const canvas = document.getElementById("photo-canvas");
+  const preview = document.getElementById("photo-preview");
+  const captureBtn = document.getElementById("btn-capture-photo");
+  const recaptureBtn = document.getElementById("btn-recapture");
+  
+  if (!activePhotoStream) return;
+  
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  
+  capturedPhotoBase64 = canvas.toDataURL("image/jpeg", 0.75);
+  
+  preview.src = capturedPhotoBase64;
+  preview.classList.remove("hidden");
+  video.classList.add("hidden");
+  
+  captureBtn.classList.add("hidden");
+  recaptureBtn.classList.remove("hidden");
+  
+  stopPhotoCamera();
+}
+
+function recaptureProductPhoto() {
+  document.getElementById("photo-preview").classList.add("hidden");
+  document.getElementById("btn-recapture").classList.add("hidden");
+  openPhotoCamera();
+}
+
+function handlePhotoFileSelect(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    capturedPhotoBase64 = e.target.result;
+    
+    const preview = document.getElementById("photo-preview");
+    const placeholder = document.getElementById("photo-placeholder");
+    const video = document.getElementById("photo-capture-video");
+    const captureBtn = document.getElementById("btn-capture-photo");
+    const recaptureBtn = document.getElementById("btn-recapture");
+    
+    preview.src = capturedPhotoBase64;
+    preview.classList.remove("hidden");
+    placeholder.classList.add("hidden");
+    video.classList.add("hidden");
+    captureBtn.classList.add("hidden");
+    recaptureBtn.classList.remove("hidden");
+    
+    stopPhotoCamera();
+  };
+  reader.readAsDataURL(file);
+}
+
+function stopPhotoCamera() {
+  if (activePhotoStream) {
+    activePhotoStream.getTracks().forEach(track => track.stop());
+    activePhotoStream = null;
+  }
+}
+
+async function saveUnidentifiedProduct() {
+  const barcodeText = document.getElementById("not-found-barcode-input").value.trim().toUpperCase();
+  const tempName = document.getElementById("not-found-name-input").value.trim();
+  const noteText = document.getElementById("not-found-note").value.trim();
+  
+  if (!barcodeText) {
+    showToast("Vui lòng nhập mã vạch sản phẩm!", "danger");
+    return;
+  }
+  
+  if (!tempName) {
+    showToast("Vui lòng nhập tên tạm sản phẩm!", "danger");
+    return;
+  }
+  
+  const employeeName = employeeList[currentEmployee] || currentEmployee;
+  
+  const rec = {
+    employeeId: currentEmployee,
+    employeeName: employeeName,
+    warehouse: currentWarehouse || "Chưa chọn kho",
+    barcode: barcodeText,
+    productName: `[TẠM] ${tempName}`,
+    count1: "1 cái",
+    count2: "",
+    count3: "",
+    totalQty: 1,
+    defaultUnit: "cái",
+    note: noteText || "Hàng không có trong dữ liệu, đã chụp ảnh kiểm tra",
+    photoBase64: capturedPhotoBase64,
+    synced: false,
+    timestamp: new Date().toISOString()
+  };
+  
+  localRecords.push(rec);
+  localStorage.setItem("inventory_records", JSON.stringify(localRecords));
+  
+  renderLogHistory();
+  closeNotFoundModal();
+  
+  showToast("🚨 Đã lưu thông tin sản phẩm ngoài danh mục!", "warning");
+  
+  if (navigator.onLine && sheetApiUrl) {
+    syncUnsyncedRecords();
+  }
+}
+
+// --- TOAST & SETTINGS ---
+
+function showToast(message, type = "success") {
+  const container = document.getElementById("toast-container");
+  const toast = document.createElement("div");
+  toast.className = `toast toast-${type}`;
+  
+  let icon = "🔔";
+  if (type === "success") icon = "✅";
+  if (type === "warning") icon = "⚠️";
+  if (type === "danger") icon = "❌";
+  
+  toast.innerHTML = `<span class="toast-icon">${icon}</span> <span>${message}</span>`;
+  container.appendChild(toast);
+  
+  container.classList.add("show");
+  
+  setTimeout(() => {
+    toast.style.opacity = "0";
+    toast.style.transform = "translateY(-10px)";
+    toast.style.transition = "all 0.5s ease";
+    setTimeout(() => {
+      toast.remove();
+      if (container.children.length === 0) {
+        container.classList.remove("show");
+      }
+    }, 500);
+  }, 2500);
+}
+
+// --- POPUP TRA CỨU SẢN PHẨM THỦ CÔNG (KÍNH LÚP) ---
+
+function openProductSearchModal() {
+  const modal = document.getElementById("modal-product-search");
+  const groupSelect = document.getElementById("modal-group-select");
+  const itemSelect = document.getElementById("modal-item-select");
+  
+  groupSelect.innerHTML = '<option value="">-- Chọn nhóm --</option>';
+  itemSelect.innerHTML = '<option value="">-- Chọn sản phẩm --</option>';
+  itemSelect.disabled = true;
+  
+  // Xác định nhóm sản phẩm của kho hiện tại
+  let targetCategory = "";
+  if (currentWarehouse === "Kho thương mại" || currentWarehouse === "Kho bán hàng") {
+    targetCategory = "Thương mại";
+  } else if (currentWarehouse === "Kho trái cây") {
+    targetCategory = "Trái cây";
+  } else if (currentWarehouse === "Kho bao bì") {
+    targetCategory = "Bao bì";
+  } else if (currentWarehouse === "Kho nguyên vật liệu") {
+    targetCategory = "Nguyên vật liệu";
+  }
+  
+  // Lọc sản phẩm trong catalog thuộc kho này
+  const filteredProducts = productCatalog.filter(p => p.category === targetCategory);
+  
+  // Tạo danh sách nhóm
+  const groups = new Set();
+  filteredProducts.forEach(p => {
+    const groupName = p.group ? p.group.trim() : p.name.trim().split(" ")[0];
+    if (groupName) groups.add(groupName);
+  });
+  
+  groups.forEach(g => {
+    const opt = document.createElement("option");
+    opt.value = g;
+    opt.textContent = g;
+    groupSelect.appendChild(opt);
+  });
+  
+  modal.classList.add("show");
+}
+
+function closeProductSearchModal() {
+  document.getElementById("modal-product-search").classList.remove("show");
+}
+
+function handleModalGroupChange() {
+  const groupSelect = document.getElementById("modal-group-select");
+  const itemSelect = document.getElementById("modal-item-select");
+  const selectedGroup = groupSelect.value;
+  
+  itemSelect.innerHTML = '<option value="">-- Chọn sản phẩm --</option>';
+  
+  if (!selectedGroup) {
+    itemSelect.disabled = true;
+    return;
+  }
+  
+  let targetCategory = "";
+  if (currentWarehouse === "Kho thương mại" || currentWarehouse === "Kho bán hàng") {
+    targetCategory = "Thương mại";
+  } else if (currentWarehouse === "Kho trái cây") {
+    targetCategory = "Trái cây";
+  } else if (currentWarehouse === "Kho bao bì") {
+    targetCategory = "Bao bì";
+  } else if (currentWarehouse === "Kho nguyên vật liệu") {
+    targetCategory = "Nguyên vật liệu";
+  }
+  
+  const products = productCatalog.filter(p => {
+    if (p.category !== targetCategory) return false;
+    const groupName = p.group ? p.group.trim() : p.name.trim().split(" ")[0];
+    return groupName === selectedGroup;
+  });
+  
+  itemSelect.disabled = false;
+  products.forEach(p => {
+    const opt = document.createElement("option");
+    opt.value = p.barcode;
+    opt.textContent = p.name;
+    itemSelect.appendChild(opt);
+  });
+}
+
+function confirmProductSearch() {
+  const itemSelect = document.getElementById("modal-item-select");
+  const barcode = itemSelect.value;
+  
+  if (!barcode) {
+    showToast("Vui lòng chọn sản phẩm!", "warning");
+    return;
+  }
+  
+  const product = productCatalog.find(p => p.barcode === barcode);
+  if (product) {
+    loadProductToForm(product);
+    closeProductSearchModal();
+  }
+}
+
+function showSettings() {
+  document.getElementById("panel-settings").classList.remove("hidden");
+  
+  const qrSection = document.getElementById("settings-qr-section");
+  const qrImg = document.getElementById("settings-qr-img");
+  if (qrSection && qrImg) {
+    if (sheetApiUrl && sheetApiUrl.startsWith("https://script.google.com/")) {
+      qrImg.src = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" + encodeURIComponent(sheetApiUrl);
+      qrSection.style.display = "block";
+    } else {
+      qrSection.style.display = "none";
+    }
+  }
+}
+
+function closeSettings() {
+  document.getElementById("panel-settings").classList.add("hidden");
+}
+
+function saveApiUrl() {
+  const url = document.getElementById("sheet-api-url").value.trim();
+  if (url && !url.startsWith("https://script.google.com/")) {
+    showToast("URL Google Apps Script không hợp lệ!", "danger");
+    return;
+  }
+  
+  sheetApiUrl = url;
+  localStorage.setItem("sheet_api_url", url);
+  showToast("Đã lưu URL kết nối Google Sheets!", "success");
+  
+  if (url) {
+    fetchDataFromGoogleSheet();
+  }
+}
+
+function clearLocalLogs() {
+  if (confirm("Bạn có chắc chắn muốn xóa toàn bộ lịch sử kiểm kê trên thiết bị này không?")) {
+    localRecords = [];
+    localStorage.setItem("inventory_records", JSON.stringify([]));
+    renderLogHistory();
+    showToast("Đã xóa sạch lịch sử kiểm kê trên máy này.", "success");
+  }
+}
+
+function exportCSV() {
+  if (localRecords.length === 0) {
+    showToast("Không có dữ liệu để xuất!", "warning");
+    return;
+  }
+  
+  let csvContent = "\ufeff";
+  csvContent += "Mã NV,Tên NV,Kho,Mã vạch,Tên sản phẩm,Lần 1 (ĐVT gốc),Lần 2 (ĐVT gốc),Lần 3 (ĐVT gốc),Tổng số lượng,ĐVT gốc,Ghi chú,Ảnh đính kèm,Thời gian\n";
+  
+  localRecords.forEach(r => {
+    const row = [
+      r.employeeId,
+      `"${r.employeeName.replace(/"/g, '""')}"`,
+      r.warehouse,
+      r.barcode,
+      `"${r.productName.replace(/"/g, '""')}"`,
+      `"${(r.count1 || "").toString().replace(/"/g, '""')}"`,
+      `"${(r.count2 || "").toString().replace(/"/g, '""')}"`,
+      `"${(r.count3 || "").toString().replace(/"/g, '""')}"`,
+      r.totalQty,
+      r.defaultUnit,
+      `"${(r.note || "").replace(/"/g, '""')}"`,
+      r.photoBase64 ? "[Đã chụp ảnh]" : "",
+      r.timestamp
+    ];
+    csvContent += row.join(",") + "\n";
+  });
+  
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", `kiemke_kho_${new Date().toISOString().slice(0,10)}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+// --- THU DỌN CAMERA STREAMS & INTERVALS TRÁNH NGHẼN CPU ---
+
+function stopAllCameraStreams() {
+  // Clear giải mã intervals ngay lập tức để giải phóng CPU
+  if (loginScanInterval) {
+    clearInterval(loginScanInterval);
+    loginScanInterval = null;
+  }
+  if (barcodeScanInterval) {
+    clearInterval(barcodeScanInterval);
+    barcodeScanInterval = null;
+  }
+
+  // Dừng mọi Camera tracks
+  if (activeCameraStream) {
+    activeCameraStream.getTracks().forEach(track => track.stop());
+    activeCameraStream = null;
+  }
+  if (html5QrcodeScanner) {
+    try {
+      html5QrcodeScanner.clear();
+    } catch (e) {}
+    html5QrcodeScanner = null;
+  }
+  stopPhotoCamera();
+}
+
+function loadCDNLibrary(url) {
+  return new Promise((resolve, reject) => {
+    const scripts = document.getElementsByTagName("script");
+    for (let i = 0; i < scripts.length; i++) {
+      if (scripts[i].src === url) {
+        resolve();
+        return;
+      }
+    }
+    
+    const script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src = url;
+    script.onload = () => resolve();
+    script.onerror = (err) => reject(err);
+    document.head.appendChild(script);
+  });
+}
+
+function switchTab(tabName) {
+  const scanBtn = document.getElementById("tab-btn-scan");
+  const historyBtn = document.getElementById("tab-btn-history");
+  const scanContent = document.getElementById("tab-content-scan");
+  const historyContent = document.getElementById("tab-content-history");
+  
+  if (tabName === "scan") {
+    scanBtn.classList.add("active");
+    historyBtn.classList.remove("active");
+    scanContent.classList.remove("hidden");
+    historyContent.classList.add("hidden");
+  } else {
+    scanBtn.classList.remove("active");
+    historyBtn.classList.add("active");
+    scanContent.classList.add("hidden");
+    historyContent.classList.remove("hidden");
+    renderLogHistory(); // Cập nhật danh sách lịch sử khi vào tab
+  }
+}
+
+function cleanupOldRecords() {
+  const todayStr = new Date().toLocaleDateString();
+  const originalLength = localRecords.length;
+  
+  localRecords = localRecords.filter(rec => {
+    if (!rec.timestamp) return false;
+    const recDateStr = new Date(rec.timestamp).toLocaleDateString();
+    return recDateStr === todayStr;
+  });
+  
+  if (localRecords.length !== originalLength) {
+    localStorage.setItem("inventory_records", JSON.stringify(localRecords));
+  }
+}
+</script>
+</body>
+</html>

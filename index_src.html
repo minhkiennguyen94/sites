@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>STOCKSCAN - Hệ Thống Kiểm Kê Kho</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="database.js"></script>
+</head>
+<body>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <header>
+    <div class="brand" style="display: flex; align-items: center; gap: 8px;">
+      <span style="font-size: 1.5rem;">📦</span>
+      <div style="display: flex; flex-direction: column;">
+        <h1 style="line-height: 1.1; font-size: 1.2rem; margin: 0; font-weight: 700;">STOCKSCAN</h1>
+        <span style="font-size: 0.62rem; color: var(--primary); letter-spacing: 0.5px; font-weight: 600; text-transform: uppercase; margin-top: 1px;">Minh Phát Co., Ltd</span>
+      </div>
+    </div>
+    <div class="status-indicators">
+      <div id="network-badge" class="badge badge-online">
+        <span class="dot"></span>
+        <span id="network-text">Trực tuyến</span>
+      </div>
+      <button id="btn-settings" class="btn btn-secondary btn-icon" style="border-radius: 50%; width: 36px; height: 36px;" title="Cấu hình Google Sheets">⚙️</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- MÀN HÌNH 1: ĐĂNG NHẬP NHÂN VIÊN -->
+    <div id="panel-login" class="card glass">
+      <!-- Logo thương hiệu Công ty Minh Phát -->
+      <div style="text-align: center; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 16px;">
+        <span style="font-size: 2.2rem; display: block; margin-bottom: 6px;">🏭</span>
+        <h2 style="font-size: 1.15rem; font-weight: 700; color: var(--text-primary); margin: 0; text-transform: uppercase; letter-spacing: 0.8px;">Minh Phát</h2>
+        <span style="font-size: 0.7rem; color: var(--text-secondary); display: block; margin-top: 2px; font-weight: 500; letter-spacing: 0.3px;">CÔNG TY TNHH SX & DV MINH PHÁT</span>
+      </div>
+
+      <h3 style="text-align: center; margin-bottom: 8px; font-weight: 600; font-size: 1.1rem; color: var(--text-primary);">Đăng Nhập Hệ Thống</h3>
+      <p style="text-align: center; color: var(--text-secondary); font-size: 0.82rem; margin-bottom: 20px;">
+        Quét mã QR nhân viên hoặc nhập mã thủ công để bắt đầu kiểm kê.
+      </p>
+
+      <div id="login-panel">
+        <!-- Nút bật/tắt camera đăng nhập -->
+        <button id="btn-toggle-login-cam" class="btn btn-primary" style="width: auto; padding: 10px 20px; font-size: 0.9rem; margin-bottom: 12px; display: inline-flex; align-items: center; gap: 6px;">📷 Quét mã QR đăng nhập</button>
+        
+        <!-- Khung quét camera QR đăng nhập -->
+        <div id="login-qr-wrapper" class="hidden" style="width: 100%; display: none; justify-content: center; margin-bottom: 12px;">
+          <div class="qr-login-box">
+            <div class="qr-scan-line"></div>
+            <video id="login-scanner-video" autoplay playsinline></video>
+            <div class="scanner-instructions">Đang mở camera trước...</div>
+          </div>
+        </div>
+
+        <div class="login-or">hoặc nhập mã thủ công</div>
+
+        <div class="input-group">
+          <label class="input-label" for="employee-id-input">Mã nhân viên (Ví dụ: USER_PROD_HUNG, EMP001)</label>
+          <div class="flex-row" style="width: 100%;">
+            <input type="password" id="employee-id-input" class="input-field" placeholder="Nhập mã nhân viên..." autocomplete="off">
+            <button id="btn-login-manual" class="btn btn-primary" style="width: auto; padding: 0 24px;">Vào</button>
+          </div>
+        </div>
+        
+
+      </div>
+    </div>
+
+    <!-- MÀN HÌNH 2: CHỌN KHO -->
+    <div id="panel-warehouse" class="card glass hidden">
+      <div class="user-info-bar">
+        <div>
+          <span style="font-size: 0.8rem; color: var(--text-secondary);">Nhân viên:</span>
+          <div id="current-user-name" style="font-weight: 600;">Nguyễn Văn Hùng</div>
+        </div>
+        <button id="btn-logout" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem; width: auto;">Đăng xuất</button>
+      </div>
+
+      <h3 style="margin: 20px 0 10px 0; font-weight: 600;">Chọn Kho Kiểm Kê</h3>
+      <div class="warehouse-grid">
+        <!-- Kho Thương Mại -->
+        <div class="warehouse-card wh-thuong-mai" data-warehouse="Kho thương mại">
+          <div class="warehouse-icon">📦</div>
+          <div class="warehouse-info">
+            <div class="warehouse-name">Kho thương mại (Kho tổng)</div>
+            <div class="warehouse-desc">Hàng thùng kiện lớn. Ưu tiên ĐVT: Kiện lớn.</div>
+          </div>
+        </div>
+
+        <!-- Kho Bán Hàng -->
+        <div class="warehouse-card wh-ban-hang" data-warehouse="Kho bán hàng">
+          <div class="warehouse-icon">🏪</div>
+          <div class="warehouse-info">
+            <div class="warehouse-name">Kho bán hàng (Siêu thị)</div>
+            <div class="warehouse-desc">Hàng bày kệ. Ưu tiên ĐVT: ĐVT mặc định gốc.</div>
+          </div>
+        </div>
+
+        <!-- Kho Trái Cây -->
+        <div class="warehouse-card wh-trai-cay" data-warehouse="Kho trái cây">
+          <div class="warehouse-icon">🍎</div>
+          <div class="warehouse-info">
+            <div class="warehouse-name">Kho trái cây (Cân điện tử)</div>
+            <div class="warehouse-desc">Nhập mã cân PLU, tên hoặc chọn danh sách.</div>
+          </div>
+        </div>
+
+        <!-- Kho Bao Bì -->
+        <div class="warehouse-card wh-bao-bi" data-warehouse="Kho bao bì">
+          <div class="warehouse-icon">🛍️</div>
+          <div class="warehouse-info">
+            <div class="warehouse-name">Kho bao bì (Bao tải nhựa)</div>
+            <div class="warehouse-desc">Kiểm soát theo bao tải lớn hoặc kg.</div>
+          </div>
+        </div>
+
+        <!-- Kho Nguyên Vật Liệu -->
+        <div class="warehouse-card wh-nguyen-vat-lieu" data-warehouse="Kho nguyên vật liệu">
+          <div class="warehouse-icon">🏭</div>
+          <div class="warehouse-info">
+            <div class="warehouse-name">Kho nguyên vật liệu</div>
+            <div class="warehouse-desc">Kiểm soát theo cái, kg hoặc kiện.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MÀN HÌNH 3: QUÉT VÀ KIỂM KÊ CHÍNH -->
+    <div id="panel-scan" class="hidden" style="display: flex; flex-direction: column; gap: 12px;">
+      
+      <div class="panel-header" style="margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center; width: 100%;">
+        <button id="btn-back-to-wh" style="background:none; border:none; color: var(--primary); font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; gap: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+          ⬅ <span id="current-warehouse-title">Kho thương mại</span>
+        </button>
+        <div style="display: flex; gap: 6px; align-items: center; flex-shrink: 0;">
+          <button id="btn-toggle-camera" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem; width: auto; display: flex; align-items: center; gap: 4px;">
+            📷 <span>Bật Camera</span>
+          </button>
+          <button id="btn-logout-scan" class="btn btn-danger" style="padding: 6px 12px; font-size: 0.8rem; width: auto; display: flex; align-items: center; gap: 4px;">
+            🔴 <span>Đăng xuất</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Segmented Tab Navigation -->
+      <div class="tabs-navigation">
+        <button id="tab-btn-scan" class="tab-btn active">📦 Kiểm Kê</button>
+        <button id="tab-btn-history" class="tab-btn">📋 Lịch Sử</button>
+      </div>
+
+      <!-- Camera quét barcode sản phẩm -->
+      <div id="scanner-viewport-container" class="scanner-viewport-wrapper hidden">
+        <div class="laser-line"></div>
+        <video id="scanner-video" autoplay playsinline></video>
+        <div class="scanner-instructions">Đang mở camera sau để quét mã...</div>
+      </div>
+
+      <!-- TAB CONTENT: KIỂM KÊ -->
+      <div id="tab-content-scan" class="card glass" style="margin-bottom: 0; padding: 16px;">
+        <!-- Nhập mã vạch sản phẩm / Mã cân PLU (Kho trái cây) -->
+        <div class="search-scan-bar" style="position: relative; display: flex; gap: 6px; align-items: center; margin-bottom: 12px;">
+          <div style="position: relative; flex: 1;">
+            <input type="text" id="barcode-input" class="input-field" placeholder="Dùng máy quét mã vạch để quét..." autocomplete="off" style="padding-right: 36px; width: 100%;" readonly>
+            <!-- Nút X xóa nhanh tích hợp trực tiếp trong ô input -->
+            <button id="btn-clear-barcode" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-secondary); font-size: 1.25rem; cursor: pointer; display: none; padding: 4px; z-index: 15; pointer-events: auto;" title="Xóa mã vạch">✕</button>
+          </div>
+          <button id="btn-manual-search" class="btn btn-primary btn-icon" style="width: 42px; height: 42px; padding: 0; display: flex; justify-content: center; align-items: center; flex-shrink: 0;" title="Tìm kiếm chi tiết">🔍</button>
+          <button id="btn-add-temp-product" class="btn btn-secondary btn-icon" style="width: 42px; height: 42px; padding: 0; display: flex; justify-content: center; align-items: center; flex-shrink: 0; font-weight: bold; font-size: 1.25rem;" title="Thêm sản phẩm mới ngoài danh mục">＋</button>
+        </div>
+
+
+
+        <!-- Danh sách xổ xuống chọn nhanh Trái cây (Chỉ hiện ở Kho Trái cây) -->
+        <div id="fruit-picker-section" class="input-group hidden" style="margin-bottom: 12px;">
+          <label class="input-label">Chọn trái cây theo nhóm & tên</label>
+          <div style="display: flex; gap: 8px;">
+            <select id="fruit-group-select" class="unit-select-field" style="flex: 1; background-position: right 12px center; padding-right: 28px;">
+              <option value="">-- Chọn nhóm --</option>
+            </select>
+            <select id="fruit-item-select" class="unit-select-field" style="flex: 1; background-position: right 12px center; padding-right: 28px;" disabled>
+              <option value="">-- Chọn trái cây --</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Form nhập liệu chính (Numpad và ĐVT luôn hiển thị cố định) -->
+        <div id="main-counting-form">
+          <!-- Card thông tin sản phẩm quét được -->
+          <div class="product-result-card" style="margin-bottom: 12px; padding: 12px;">
+            <div class="product-result-header" style="margin-bottom: 0;">
+              <div>
+                <div id="prod-name" class="product-name" style="font-size: 1.1rem; color: var(--text-secondary);">Chờ quét sản phẩm...</div>
+                <div id="prod-barcode" class="product-barcode">Vui lòng quét hoặc nhập mã vạch để bắt đầu</div>
+              </div>
+              <span id="prod-category" class="product-tag hidden">Trống</span>
+            </div>
+          </div>
+
+          <!-- Màn hình hiển thị số lượng to rõ đang nhập -->
+          <div class="qty-display-container">
+            <span id="qty-display-val"></span>
+            <span id="qty-display-unit">-</span>
+          </div>
+
+          <!-- Layout 2 cột cố định: Trái Numpad, Phải ĐVT + Nút Lưu -->
+          <div class="numpad-uom-layout">
+            <!-- Cột Trái: Bảng số ảo Numpad -->
+            <div class="numpad-grid">
+              <button class="btn-num" data-val="7">7</button>
+              <button class="btn-num" data-val="8">8</button>
+              <button class="btn-num" data-val="9">9</button>
+              
+              <button class="btn-num" data-val="4">4</button>
+              <button class="btn-num" data-val="5">5</button>
+              <button class="btn-num" data-val="6">6</button>
+              
+              <button class="btn-num" data-val="1">1</button>
+              <button class="btn-num" data-val="2">2</button>
+              <button class="btn-num" data-val="3">3</button>
+              
+              <button class="btn-num" data-val="0">0</button>
+              <button class="btn-num" data-val=".">.</button>
+              <button class="btn-num btn-backspace" data-val="backspace">⌫</button>
+            </div>
+
+            <!-- Cột Phải: ĐVT xếp dọc và nút Lưu nằm dưới cùng -->
+            <div class="uom-vertical-stack">
+              <div id="uom-button-column" style="display: flex; flex-direction: column; gap: 8px;">
+                <button class="btn-uom selected" data-unit="default" data-factor="1" disabled>-</button>
+              </div>
+              <!-- Nút Lưu nằm gọn gàng ngay dưới cột ĐVT -->
+              <button id="btn-save-record" class="btn btn-primary" style="padding: 12px 0; font-size: 1.05rem; font-weight: 700; height: 100%; min-height: 54px; margin-top: auto; background: var(--success); box-shadow: 0 4px 10px var(--success-glow);">💾 Lưu</button>
+            </div>
+          </div>
+          
+          <!-- Lịch sử kiểm nhanh (5-6 dòng gần nhất) dưới Numpad -->
+          <div id="scan-preview-log-section" style="margin-top: 16px; border-top: 1px solid var(--border-color); padding-top: 12px;">
+            <h4 style="font-size: 0.85rem; font-weight: 600; margin-bottom: 8px; color: var(--text-secondary); display: flex; justify-content: space-between; align-items: center;">
+              <span>📋 Lượt kiểm gần đây</span>
+              <span style="font-size: 0.75rem; color: var(--text-secondary);">Tối đa 6 lượt</span>
+            </h4>
+            <div id="preview-log-list" style="display: flex; flex-direction: column; gap: 8px;">
+              <div style="text-align:center; padding: 12px; color: var(--text-secondary); font-size: 0.8rem;">Chưa có sản phẩm nào được kiểm kê trong kho này.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB CONTENT: LỊCH SỬ KIỂM KÊ -->
+      <div id="tab-content-history" class="card glass hidden" style="margin-top: 0; padding: 16px;">
+        <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between;">
+          <span>📋 Lịch sử kiểm kê (Mới nhất ở đầu)</span>
+          <span id="records-count-badge" style="font-size: 0.75rem; background: rgba(99, 102, 241, 0.15); color: #a5b4fc; padding: 2px 8px; border-radius: 10px;">0 mã</span>
+        </h3>
+        
+        <div id="recent-log-list" style="display: flex; flex-direction: column; gap: 8px;">
+          <!-- Load động danh sách từ JS -->
+          <div style="text-align:center; padding: 20px; color: var(--text-secondary); font-size: 0.8rem;">Chưa có sản phẩm nào được kiểm kê.</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- MÀN HÌNH 4: CÀI ĐẶT -->
+    <div id="panel-settings" class="card glass hidden">
+      <div class="panel-header">
+        <h3 class="panel-title">Cấu hình kết nối Google Sheet</h3>
+        <button id="btn-close-settings" style="background:none; border:none; color: var(--text-secondary); font-size: 1.25rem; cursor: pointer;">✕</button>
+      </div>
+
+      <div class="settings-panel">
+        <div class="input-group">
+          <label class="input-label" for="sheet-api-url">Đường dẫn Google Apps Script Web App URL</label>
+          <input type="url" id="sheet-api-url" class="input-field" placeholder="https://script.google.com/macros/s/.../exec">
+          <span style="font-size: 0.7rem; color: var(--text-secondary);">
+            Dán đường dẫn Web App của bạn để đồng bộ. Để trống sẽ dùng cơ sở dữ liệu giả lập offline.
+          </span>
+          <button id="btn-save-api-url" class="btn btn-primary" style="margin-top: 6px;">Cập nhật kết nối</button>
+        </div>
+
+        <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 8px 0;">
+
+        <div class="flex-row">
+          <button id="btn-clear-local" class="btn btn-danger" style="flex:1;">Xóa lịch sử cục bộ</button>
+          <button id="btn-export-csv" class="btn btn-secondary" style="flex:1;">Xuất Excel (CSV)</button>
+        </div>
+        
+        <button id="btn-sync-offline" class="btn btn-primary" style="display:none; margin-top: 10px;">🔄 Đồng bộ thủ công ngoại tuyến</button>
+
+        <!-- QR Code chia sẻ nhanh -->
+        <div id="settings-qr-section" style="margin-top: 16px; text-align: center; border-top: 1px solid var(--border-color); padding-top: 12px; display: none;">
+          <label class="input-label" style="margin-bottom: 8px; font-weight: 600; font-size: 0.8rem; color: var(--text-secondary);">📲 Quét mã QR để mở App trên điện thoại</label>
+          <div style="background: white; padding: 10px; display: inline-block; border-radius: 8px; margin-bottom: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+            <img id="settings-qr-img" src="" alt="QR Code" style="width: 140px; height: 140px; display: block;">
+          </div>
+          <div style="font-size: 0.7rem; color: var(--text-secondary); line-height: 1.3;">
+            Nhân viên quét mã này để truy cập nhanh mà không cần gõ URL.
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- POPUP 1: HÀNG HÓA KHÔNG CÓ TRONG DANH MỤC -->
+  <div id="modal-not-found" class="modal-overlay">
+    <div class="modal-content glass" style="border: 1px solid rgba(239, 68, 68, 0.3);">
+      <h3 class="modal-title">🚨 Hàng hóa không có trong dữ liệu</h3>
+      
+      <div class="input-group" style="margin-bottom: 10px;">
+        <label class="input-label" for="not-found-barcode-input">Mã vạch / Mã sản phẩm</label>
+        <input type="text" id="not-found-barcode-input" class="input-field" placeholder="Nhập mã vạch sản phẩm...">
+      </div>
+
+      <div class="input-group" style="margin-bottom: 10px;">
+        <label class="input-label" for="not-found-name-input">Tên tạm sản phẩm</label>
+        <input type="text" id="not-found-name-input" class="input-field" placeholder="Nhập tên sản phẩm tạm thời...">
+      </div>
+
+      <!-- Khung mở camera chụp ảnh sản phẩm lỗi -->
+      <div class="camera-photo-box">
+        <video id="photo-capture-video" autoplay playsinline class="hidden"></video>
+        <canvas id="photo-canvas" class="hidden"></canvas>
+        <img id="photo-preview" class="hidden">
+        
+        <div id="photo-placeholder" style="text-align:center; color: var(--text-secondary); font-size: 0.8rem;">
+          📷 Camera chụp ảnh
+        </div>
+        
+        <!-- Nút chụp tròn giữa -->
+        <button id="btn-capture-photo" class="camera-capture-trigger hidden"></button>
+      </div>
+
+      <div class="flex-row" style="gap: 8px;">
+        <button id="btn-open-photo-cam" class="btn btn-secondary" style="flex: 1; font-size: 0.8rem; padding: 10px 0;">📷 Stream Cam</button>
+        <label for="photo-file-input" class="btn btn-primary" style="flex: 1; font-size: 0.8rem; padding: 10px 0; text-align: center; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px; background: linear-gradient(135deg, var(--primary), #a5b4fc); box-shadow: none;">
+          📤 Tải ảnh / Chụp
+        </label>
+        <input type="file" id="photo-file-input" accept="image/*" style="display: none;">
+        <button id="btn-recapture" class="btn btn-secondary hidden" style="flex: 1; font-size: 0.8rem;">🔄 Chụp Lại</button>
+      </div>
+
+      <div class="input-group">
+        <label class="input-label" for="not-found-note">Ghi chú thêm (Vị trí, giá... nếu có)</label>
+        <textarea id="not-found-note" class="input-field" style="height: 60px; resize: none; font-size: 0.85rem;" placeholder="Nhập mô tả hoặc thông tin thêm..."></textarea>
+      </div>
+
+      <div class="flex-row">
+        <button id="btn-close-not-found" class="btn btn-secondary" style="flex: 1;">Bỏ qua</button>
+        <button id="btn-save-not-found" class="btn btn-primary" style="flex: 1; background: linear-gradient(135deg, var(--danger), #f43f5e); box-shadow: none;">Lưu ảnh lỗi</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- POPUP 2: SỬA SỐ LƯỢNG LỊCH SỬ -->
+  <div id="modal-edit-history" class="modal-overlay">
+    <div class="modal-content glass" style="border: 1px solid var(--primary); max-width: 400px; display: flex; flex-direction: column; padding: 20px; gap: 16px;">
+      <h3 class="modal-title" style="color: var(--primary);">✏️ Sửa đổi số lượng kiểm đếm</h3>
+      
+      <div style="background: rgba(255,255,255,0.02); padding: 10px; border-radius: 10px; border: 1px solid var(--border-color);">
+        <div id="edit-prod-name" class="product-name" style="font-size: 1rem;">Bia Heineken Lon 330ml</div>
+        <div id="edit-prod-barcode" class="product-barcode">8930000000001</div>
+        <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 6px;">
+          Đã kiểm: <span id="edit-prod-current-val" style="color: var(--success); font-weight: 600;">1 thùng</span>
+        </div>
+      </div>
+      
+      <div class="input-group">
+        <label class="input-label">Nhập số lượng mới</label>
+        <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 8px; width: 100%;">
+          <input type="text" id="edit-new-qty-input" class="input-field" placeholder="Nhập số mới..." readonly style="text-align: right; font-size: 1.25rem; font-weight: 700; color: var(--success); background: rgba(15,23,42,0.8);">
+          <select id="edit-new-uom-select" class="unit-select-field" style="height: 100%;">
+            <!-- Load động ĐVT -->
+          </select>
+        </div>
+      </div>
+
+      <!-- Bảng phím số ảo Numpad cho Modal -->
+      <div class="modal-numpad-grid">
+        <button class="btn-modal-num" data-val="7">7</button>
+        <button class="btn-modal-num" data-val="8">8</button>
+        <button class="btn-modal-num" data-val="9">9</button>
+        
+        <button class="btn-modal-num" data-val="4">4</button>
+        <button class="btn-modal-num" data-val="5">5</button>
+        <button class="btn-modal-num" data-val="6">6</button>
+        
+        <button class="btn-modal-num" data-val="1">1</button>
+        <button class="btn-modal-num" data-val="2">2</button>
+        <button class="btn-modal-num" data-val="3">3</button>
+        
+        <button class="btn-modal-num" data-val="0">0</button>
+        <button class="btn-modal-num" data-val=".">.</button>
+        <button class="btn-modal-num btn-modal-backspace" data-val="backspace">⌫</button>
+      </div>
+
+      <div class="flex-row">
+        <button id="btn-close-edit" class="btn btn-secondary" style="flex: 1;">Hủy</button>
+        <button id="btn-save-edit" class="btn btn-primary" style="flex: 1;">Lưu</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- POPUP 3: DANH SÁCH CHỌN SẢN PHẨM CHI TIẾT (TRA CỨU THỦ CÔNG) -->
+  <div id="modal-product-search" class="modal-overlay">
+    <div class="modal-content glass" style="border: 1px solid var(--primary); max-width: 400px; display: flex; flex-direction: column; padding: 20px; gap: 16px;">
+      <div class="panel-header" style="margin-bottom: 0; display: flex; justify-content: space-between; align-items: center;">
+        <h3 class="modal-title" style="margin: 0; color: var(--primary);">🔍 Tra Cứu Sản Phẩm</h3>
+        <button id="btn-close-prod-search" style="background:none; border:none; color: var(--text-secondary); font-size: 1.25rem; cursor: pointer;">✕</button>
+      </div>
+      
+      <div class="input-group">
+        <label class="input-label" for="modal-group-select">Chọn nhóm sản phẩm</label>
+        <select id="modal-group-select" class="unit-select-field">
+          <option value="">-- Chọn nhóm --</option>
+        </select>
+      </div>
+      
+      <div class="input-group" style="margin-bottom: 8px;">
+        <label class="input-label" for="modal-item-select">Chọn sản phẩm</label>
+        <select id="modal-item-select" class="unit-select-field" disabled>
+          <option value="">-- Chọn sản phẩm --</option>
+        </select>
+      </div>
+
+      <div class="flex-row" style="gap: 8px;">
+        <button id="btn-cancel-prod-search" class="btn btn-secondary" style="flex: 1;">Hủy</button>
+        <button id="btn-confirm-prod-search" class="btn btn-primary" style="flex: 1;">Chọn</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
