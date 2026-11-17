@@ -93,3 +93,13 @@ body.hide-ui .stage-btn{opacity:.001}
 @keyframes beat{0%{transform:scale(1)}30%{transform:scale(1.04)}100%{transform:scale(1)}}
 
 .toolbar .row{display:flex;gap:.8cqw;align-items:stretch}.toolbar .row .primary{flex:1}button.small{font-size:1.5cqh;padding:.6cqh .8cqw;align-self:center}
+
+.wrow.skipped .wp{color:#a89;text-decoration:line-through}.wrow.skipped .wn{color:#a89;text-decoration:line-through;font-weight:600}
+.skip-dlg{position:absolute;inset:0;z-index:30;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center}
+.skip-dlg[hidden]{display:none}
+.skip-box{width:44cqw;padding:4cqh 3cqw;text-align:center;border-radius:2cqh;background:linear-gradient(#a50f18,#5c0309);border:.5cqh solid #ffd46a;box-shadow:0 0 5cqh rgba(255,212,106,.5);color:#fff}
+.skip-box h3{margin:0 0 1.5cqh;font-size:4cqh;color:#ffd46a}
+.skip-num{font-size:6cqh;font-weight:900;color:#fff;margin-bottom:1.5cqh}
+.skip-box p{font-size:2.2cqh;margin:0 0 3cqh;color:#ffe9b8}
+.skip-btns{display:flex;gap:2cqw;justify-content:center}
+.skip-btns button{font-size:3cqh;padding:1.2cqh 3cqw;text-align:center}

@@ -16,7 +16,7 @@
   var $ = function (id) { return document.getElementById(id); };
   var els = {
     digits: $('digits').children, prizeName: $('prizeName'), prizeTurn: $('prizeTurn'), hint: $('hint'),
-    steps: $('steps'), btnSkip: $('btnSkip'), list: $('winnersList'), modal: $('modal'), inMin: $('inMin'), inMax: $('inMax'),
+    steps: $('steps'), btnSkip: $('btnSkip'), skipDlg: $('skipDlg'), skipText: $('skipText'), list: $('winnersList'), modal: $('modal'), inMin: $('inMin'), inMax: $('inMax'),
     err: $('err'), poolInfo: $('poolInfo'), btnSound: $('btnSound'), btnDraw: $('btnDraw'), btnStage: $('btnStage')
   };
 
@@ -29,7 +29,7 @@
     try {
       var s = JSON.parse(localStorage.getItem(KEY));
       if (s && typeof s.min === 'number' && typeof s.max === 'number' && Array.isArray(s.winners)) {
-        d = { min: s.min, max: s.max, winners: s.winners, pending: s.pending || null, skipped: Array.isArray(s.skipped) ? s.skipped : [], sound: !!s.sound };
+        d = { min: s.min, max: s.max, winners: s.winners, pending: s.pending || null, skipped: Array.isArray(s.skipped) ? s.skipped.map(function (x) { return typeof x === 'object' ? x : { num: x, label: '' }; }) : [], sound: !!s.sound };
       }
     } catch (e) {}
     return d;
@@ -46,7 +46,7 @@
   function pool() {
     var used = {};
     state.winners.forEach(function (w) { used[w.num] = 1; });
-    state.skipped.forEach(function (n) { used[n] = 1; });
+    state.skipped.forEach(function (s) { used[s.num] = 1; });
     var out = [];
     for (var i = state.min; i <= state.max; i++) if (!used[i]) out.push(i);
     return out;
@@ -104,7 +104,7 @@
   }
   function renderWinners() {
     els.list.innerHTML = '';
-    if (!state.winners.length) { els.list.innerHTML = '<div class="empty">Chưa có số trúng thưởng</div>'; return; }
+    if (!state.winners.length && !state.skipped.length) { els.list.innerHTML = '<div class="empty">Chưa có số trúng thưởng</div>'; return; }
     state.winners.forEach(function (w) {
       var row = document.createElement('div');
       row.className = 'wrow';
@@ -113,13 +113,27 @@
       row.lastChild.textContent = pad(w.num);
       els.list.appendChild(row);
     });
+    state.skipped.forEach(function (s) {
+      var row = document.createElement('div');
+      row.className = 'wrow skipped';
+      row.innerHTML = '<span class=\"wp\"></span><span class=\"wn\"></span>';
+      row.firstChild.textContent = (s.label || 'Bỏ qua') + ' – bỏ qua';
+      row.lastChild.textContent = pad(s.num);
+      els.list.appendChild(row);
+    });
     els.list.parentNode.scrollTop = els.list.parentNode.scrollHeight;
   }
   function skipNumber() {
     if (busy || view.state !== 'done' || !state.winners.length || !els.modal.hidden) return;
     var w = state.winners[state.winners.length - 1];
-    if (!confirm('Bỏ qua số ' + pad(w.num) + ' (' + w.label + ')? Số này sẽ bị loại và không ra lại.')) return;
-    state.winners.pop(); state.skipped.push(w.num); state.pending = null; save();
+    els.skipText.textContent = 'Số ' + pad(w.num) + ' · ' + w.label;
+    els.skipDlg.hidden = false;
+  }
+  function confirmSkip() {
+    els.skipDlg.hidden = true;
+    var w = state.winners[state.winners.length - 1];
+    if (!w || view.state !== 'done') return;
+    state.winners.pop(); state.skipped.push({ num: w.num, label: w.label }); state.pending = null; save();
     view.idx = state.winners.length; view.state = 'idle'; view.digits = ['?', '?', '?'];
     for (var k = 0; k < 3; k++) els.digits[k].classList.remove('final');
     renderAll();
@@ -288,7 +302,7 @@
 
   var lastDraw = 0;
   function draw(e, blankOnly) {
-    if (busy || !els.modal.hidden) return;
+    if (busy || !els.modal.hidden || !els.skipDlg.hidden) return;
     var nowT = Date.now();
     if (nowT - lastDraw < 800) return;
     lastDraw = nowT;
@@ -358,6 +372,8 @@
   function toggleHide() { document.body.classList.toggle('hide-ui'); }
   function toggleSound() { state.sound = !state.sound; save(); renderSound(); if (state.sound) tone(660, 0.2, 'triangle', 0.1); }
 
+  $('skipYes').onclick = function (e) { e.stopPropagation(); confirmSkip(); };
+  $('skipNo').onclick = function (e) { e.stopPropagation(); els.skipDlg.hidden = true; };
   els.btnSkip.onclick = function (e) { e.stopPropagation(); skipNumber(); };
   els.btnDraw.onclick = function (e) { e.stopPropagation(); draw(); };
   $('btnStage').onclick = function (e) { e.stopPropagation(); draw(); };
@@ -368,6 +384,7 @@
   $('stage').addEventListener('click', draw);
 
   addEventListener('keydown', function (e) {
+    if (!els.skipDlg.hidden) { e.preventDefault(); if (e.key === 'Escape') els.skipDlg.hidden = true; else if (e.key === 'Enter') confirmSkip(); return; }
     if (!els.modal.hidden) { if (e.key === 'Escape') closeSettings(); return; }
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     var k = e.key.toLowerCase();
