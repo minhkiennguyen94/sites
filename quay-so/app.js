@@ -25,11 +25,11 @@
   var view = { idx: 0, digits: ['?', '?', '?'], state: 'idle' };
 
   function load() {
-    var d = { min: 1, max: 100, winners: [], pending: null, skipped: [], sound: false };
+    var d = { min: 1, max: 100, winners: [], pending: null, skipped: [], sound: false, vol: 0.8 };
     try {
       var s = JSON.parse(localStorage.getItem(KEY));
       if (s && typeof s.min === 'number' && typeof s.max === 'number' && Array.isArray(s.winners)) {
-        d = { min: s.min, max: s.max, winners: s.winners, pending: s.pending || null, skipped: Array.isArray(s.skipped) ? s.skipped.map(function (x) { return typeof x === 'object' ? x : { num: x, label: '' }; }) : [], sound: !!s.sound };
+        d = { min: s.min, max: s.max, winners: s.winners, pending: s.pending || null, skipped: Array.isArray(s.skipped) ? s.skipped.map(function (x) { return typeof x === 'object' ? x : { num: x, label: '' }; }) : [], sound: !!s.sound, vol: typeof s.vol === 'number' ? s.vol : 0.8 };
       }
     } catch (e) {}
     return d;
@@ -133,6 +133,7 @@
     els.skipDlg.hidden = true;
     var w = state.winners[state.winners.length - 1];
     if (!w || view.state !== 'done') return;
+    tone(440, 0.25, 'sawtooth', 0.08); tone(330, 0.25, 'sawtooth', 0.08, 0.2); tone(220, 0.5, 'sawtooth', 0.08, 0.4);
     state.winners.pop(); state.skipped.push({ num: w.num, label: w.label }); state.pending = null; save();
     view.idx = state.winners.length; view.state = 'idle'; view.digits = ['?', '?', '?'];
     for (var k = 0; k < 3; k++) els.digits[k].classList.remove('final');
@@ -154,21 +155,78 @@
   }
 
   /* ---------- Sound ---------- */
-  var actx;
+  var actx, master, noiseBuf;
+  function ctx() {
+    if (!actx) {
+      actx = new (window.AudioContext || window.webkitAudioContext)();
+      master = actx.createGain(); master.gain.value = state.vol;
+      var comp = actx.createDynamicsCompressor(); master.connect(comp); comp.connect(actx.destination);
+      noiseBuf = actx.createBuffer(1, actx.sampleRate * 2, actx.sampleRate);
+      var d = noiseBuf.getChannelData(0); for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    }
+    if (actx.state === 'suspended') actx.resume();
+    return actx;
+  }
+  function setVol(v) { state.vol = v; if (master) master.gain.value = v; save(); }
   function tone(freq, dur, type, vol, when) {
     if (!state.sound) return;
     try {
-      actx = actx || new (window.AudioContext || window.webkitAudioContext)();
-      var t = actx.currentTime + (when || 0);
-      var o = actx.createOscillator(), g = actx.createGain();
+      var a = ctx(), t = a.currentTime + (when || 0);
+      var o = a.createOscillator(), g = a.createGain();
       o.type = type || 'sine'; o.frequency.value = freq;
       g.gain.setValueAtTime(vol || 0.08, t);
       g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-      o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t + dur);
+      o.connect(g); g.connect(master); o.start(t); o.stop(t + dur);
     } catch (e) {}
   }
-  function fanfare() { [523, 659, 784, 1046].forEach(function (f, i) { tone(f, 0.45, 'triangle', 0.12, i * 0.14); }); }
-
+  function noise(dur, vol, when, freq, kind, attack) {
+    if (!state.sound) return;
+    try {
+      var a = ctx(), t = a.currentTime + (when || 0);
+      var s = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain();
+      s.buffer = noiseBuf; f.type = kind || 'bandpass'; f.frequency.value = freq || 1500;
+      g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + (attack || 0.005));
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      s.connect(f); f.connect(g); g.connect(master); s.start(t, Math.random()); s.stop(t + dur);
+    } catch (e) {}
+  }
+  function kick(vol, when) {
+    if (!state.sound) return;
+    try {
+      var a = ctx(), t = a.currentTime + (when || 0), o = a.createOscillator(), g = a.createGain();
+      o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(40, t + 0.15);
+      g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
+      o.connect(g); g.connect(master); o.start(t); o.stop(t + 0.3);
+    } catch (e) {}
+  }
+  function snare(vol, when) { noise(0.12, vol, when, 2500, 'bandpass'); tone(190, 0.08, 'triangle', vol * 0.6, when); }
+  function boom(vol) { kick(vol, 0); noise(0.6, vol * 0.8, 0, 300, 'lowpass', 0.01); }
+  function crackle(n, vol) { for (var i = 0; i < n; i++) noise(0.05, vol, Math.random() * 0.8, 3000 + Math.random() * 4000, 'highpass'); }
+  function applause(dur, vol) { noise(dur, vol, 0, 2200, 'bandpass', dur * 0.3); noise(dur, vol * 0.7, 0.1, 4500, 'bandpass', dur * 0.3); }
+  function brass(freq, dur, vol, when) {
+    tone(freq, dur, 'sawtooth', vol, when); tone(freq * 1.005, dur, 'square', vol * 0.5, when); tone(freq / 2, dur, 'triangle', vol, when);
+  }
+  function fanfare(level) {
+    level = level || 1;
+    var seq = [[523, 0], [659, 0.16], [784, 0.32], [1046, 0.5]];
+    if (level >= 2) seq = seq.concat([[784, 0.8], [1046, 0.96], [1318, 1.2]]);
+    seq.forEach(function (n) { brass(n[0], 0.5, 0.07, n[1]); });
+    var end = level >= 2 ? 1.2 : 0.5;
+    [523, 659, 784, 1046].forEach(function (f) { brass(f, 1.6, 0.05, end + 0.05); });
+    boom(0.6); kick(0.7, end + 0.05);
+    applause(2 + level * 1.5, 0.12 + level * 0.03);
+    if (level >= 3) { [880, 1175, 1568].forEach(function (f, i) { tone(f, 1.2, 'triangle', 0.08, end + 0.3 + i * 0.12); }); }
+    if (level >= 4) {
+      for (var i = 0; i < 8; i++) kick(0.6, i * 0.12);
+      [392, 523, 659, 784, 1046, 1318].forEach(function (f) { brass(f, 3, 0.05, end + 0.6); });
+      boom(0.9); applause(7, 0.2);
+    }
+  }
+  function drumTick(el, hold, total, special) {
+    var slow = el > hold, p = slow ? (el - hold) / (total - hold) : 0;
+    var gap = slow ? 90 + p * p * 450 : (special ? 70 : 90);
+    return gap;
+  }
   /* ---------- Fireworks & confetti ---------- */
   var cv = $('confetti'), cx = cv.getContext('2d'), parts = [], sparks = [], raf = 0;
   function fit() { cv.width = innerWidth; cv.height = innerHeight; }
@@ -200,7 +258,7 @@
         c: palette[(Math.random() * palette.length) | 0], life: 0, max: 70 + Math.random() * 40, sz: 2 + Math.random() * 2.5
       });
     }
-    tone(120 + randInt(80), 0.35, 'sawtooth', 0.05);
+    noise(0.35, 0.18, 0, 150 + randInt(100), 'lowpass', 0.01); crackle(4, 0.05);
     start();
   }
   function fireworks(bursts, span) {
@@ -270,8 +328,8 @@
         p = Math.min(p, r.total);
         r.strip.style.transform = 'translateY(' + (-(r.total - p) * r.H) + 'px)';
         
+        if (now - lastDrum > drumTick(el, r.hold, stops[k].ms, special)) { lastDrum = now; snare(el > r.hold ? 0.06 + 0.1 * (el - r.hold) / SLOW : 0.1, 0); if (special) kick(0.25, 0); }
         if (special) {
-          if (now - lastDrum > 70) { lastDrum = now; tone(90 + randInt(40), 0.06, 'triangle', 0.08); }
           if (stops[k].ms > 9000 && el > 3500 && el < stops[k].ms && now - lastBeat > (el > 6500 ? 560 : 800)) { lastBeat = now; tone(55, 0.18, 'sine', 0.35); tone(55, 0.18, 'sine', 0.3, 0.16); }
         }
         var step = Math.floor(p);
@@ -279,8 +337,8 @@
         if (t >= 1) {
           fin[i] = true; view.digits[i] = String(stops[k].digit);
           r.box.classList.remove('rolling'); r.box.classList.add('final');
-          renderDigits(); tone(880, 0.25, 'triangle', 0.12);
-          if (special) { pulse('flash', 600); tone(60, 0.5, 'sine', 0.3); tone(1320, 0.5, 'triangle', 0.1); }
+          renderDigits(); tone(880, 0.5, 'triangle', 0.14); tone(1760, 0.6, 'sine', 0.1); kick(0.5, 0);
+          if (special) { pulse('flash', 600); boom(0.8); tone(1320, 0.8, 'triangle', 0.12); }
         } else all = false;
       });
       if (all) done(); else requestAnimationFrame(frame);
@@ -297,7 +355,7 @@
     view.idx = idx; view.state = 'done';
     busy = false; special = false; frameEl.classList.remove('dark');
     renderSteps(); renderWinners(); renderHint();
-    fanfare(); celebrate(idx < 4 ? 1 : idx < 6 ? 2 : idx === 6 ? 3 : 4);
+    var lv = idx < 4 ? 1 : idx < 6 ? 2 : idx === 6 ? 3 : 4; fanfare(lv); celebrate(idx < 4 ? 1 : idx < 6 ? 2 : idx === 6 ? 3 : 4);
   }
 
   var lastDraw = 0;
@@ -370,10 +428,12 @@
     else document.documentElement.requestFullscreen && document.documentElement.requestFullscreen().catch(function () {});
   }
   function toggleHide() { document.body.classList.toggle('hide-ui'); }
-  function toggleSound() { state.sound = !state.sound; save(); renderSound(); if (state.sound) tone(660, 0.2, 'triangle', 0.1); }
+  function toggleSound() { state.sound = !state.sound; save(); renderSound(); if (state.sound) { tone(660, 0.2, 'triangle', 0.1); tone(990, 0.3, 'triangle', 0.1, 0.12); } }
 
   $('skipYes').onclick = function (e) { e.stopPropagation(); confirmSkip(); };
   $('skipNo').onclick = function (e) { e.stopPropagation(); els.skipDlg.hidden = true; };
+  $('vol').value = state.vol; $('vol').oninput = function () { setVol(Number(this.value)); };
+  $('vol').onclick = function (e) { e.stopPropagation(); };
   els.btnSkip.onclick = function (e) { e.stopPropagation(); skipNumber(); };
   els.btnDraw.onclick = function (e) { e.stopPropagation(); draw(); };
   $('btnStage').onclick = function (e) { e.stopPropagation(); draw(); };

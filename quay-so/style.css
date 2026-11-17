@@ -103,3 +103,4 @@ body.hide-ui .stage-btn{opacity:.001}
 .skip-box p{font-size:2.2cqh;margin:0 0 3cqh;color:#ffe9b8}
 .skip-btns{display:flex;gap:2cqw;justify-content:center}
 .skip-btns button{font-size:3cqh;padding:1.2cqh 3cqw;text-align:center}
+.volrow{display:flex;align-items:center;gap:.6cqw;font-size:2cqh;color:#fff;padding:.4cqh 1.2cqw}.volrow input{flex:1;accent-color:#ffd46a;min-width:0}
