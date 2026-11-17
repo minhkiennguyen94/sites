@@ -16,7 +16,7 @@
   var $ = function (id) { return document.getElementById(id); };
   var els = {
     digits: $('digits').children, prizeName: $('prizeName'), prizeTurn: $('prizeTurn'), hint: $('hint'),
-    steps: $('steps'), list: $('winnersList'), modal: $('modal'), inMin: $('inMin'), inMax: $('inMax'),
+    steps: $('steps'), btnSkip: $('btnSkip'), list: $('winnersList'), modal: $('modal'), inMin: $('inMin'), inMax: $('inMax'),
     err: $('err'), poolInfo: $('poolInfo'), btnSound: $('btnSound'), btnDraw: $('btnDraw'), btnStage: $('btnStage')
   };
 
@@ -25,11 +25,11 @@
   var view = { idx: 0, digits: ['?', '?', '?'], state: 'idle' };
 
   function load() {
-    var d = { min: 1, max: 100, winners: [], pending: null, sound: false };
+    var d = { min: 1, max: 100, winners: [], pending: null, skipped: [], sound: false };
     try {
       var s = JSON.parse(localStorage.getItem(KEY));
       if (s && typeof s.min === 'number' && typeof s.max === 'number' && Array.isArray(s.winners)) {
-        d = { min: s.min, max: s.max, winners: s.winners, pending: s.pending || null, sound: !!s.sound };
+        d = { min: s.min, max: s.max, winners: s.winners, pending: s.pending || null, skipped: Array.isArray(s.skipped) ? s.skipped : [], sound: !!s.sound };
       }
     } catch (e) {}
     return d;
@@ -46,6 +46,7 @@
   function pool() {
     var used = {};
     state.winners.forEach(function (w) { used[w.num] = 1; });
+    state.skipped.forEach(function (n) { used[n] = 1; });
     var out = [];
     for (var i = state.min; i <= state.max; i++) if (!used[i]) out.push(i);
     return out;
@@ -74,6 +75,7 @@
     groups.forEach(function (g) {
       var done = Math.max(0, Math.min(g.count, state.winners.length - g.from));
       var li = document.createElement('li');
+      li.onclick = function (e) { e.stopPropagation(); if (view.state === 'done') draw(null, true); };
       li.textContent = g.name + ' ' + done + '/' + g.count;
       if (done === g.count) li.className = 'done';
       else if (cur >= g.from && cur < g.from + g.count) li.className = 'cur';
@@ -98,6 +100,7 @@
     } else txt = 'Nhấn để quay số';
     els.hint.textContent = txt;
     els.btnStage.disabled = els.btnDraw.disabled = busy || (n >= PLAN.length && !state.pending);
+    els.btnSkip.disabled = busy || view.state !== 'done' || !n;
   }
   function renderWinners() {
     els.list.innerHTML = '';
@@ -111,6 +114,15 @@
       els.list.appendChild(row);
     });
     els.list.parentNode.scrollTop = els.list.parentNode.scrollHeight;
+  }
+  function skipNumber() {
+    if (busy || view.state !== 'done' || !state.winners.length || !els.modal.hidden) return;
+    var w = state.winners[state.winners.length - 1];
+    if (!confirm('Bỏ qua số ' + pad(w.num) + ' (' + w.label + ')? Số này sẽ bị loại và không ra lại.')) return;
+    state.winners.pop(); state.skipped.push(w.num); state.pending = null; save();
+    view.idx = state.winners.length; view.state = 'idle'; view.digits = ['?', '?', '?'];
+    for (var k = 0; k < 3; k++) els.digits[k].classList.remove('final');
+    renderAll();
   }
   function renderAll() { renderHeader(); renderDigits(); renderSteps(); renderWinners(); renderHint(); renderSound(); }
   function renderSound() { els.btnSound.textContent = state.sound ? '🔊 Âm thanh: bật' : '🔇 Âm thanh: tắt'; }
@@ -221,7 +233,7 @@
   }
 
   /* ---------- Drawing ---------- */
-  var SLOW = 1500;
+  var SLOW = 3000;
   function easeOut(t) { var u = 1 - t; return 1 - u * u * u * u * u; }
 
   // Slot-machine reel: each stop = { digit, ms, cycles }. Fast spin that decelerates before stopping.
@@ -243,10 +255,10 @@
         var r = reels[k], el = now - begin, t = Math.min(1, el / stops[k].ms), v = r.total / (r.hold + SLOW / 2), u = Math.max(0, el - r.hold), p = el < r.hold ? v * el : v * (r.hold + u - u * u / (2 * SLOW));
         p = Math.min(p, r.total);
         r.strip.style.transform = 'translateY(' + (-(r.total - p) * r.H) + 'px)';
-        r.strip.style.filter = el < r.hold + 600 ? 'blur(.25cqh)' : 'none';
+        
         if (special) {
           if (now - lastDrum > 70) { lastDrum = now; tone(90 + randInt(40), 0.06, 'triangle', 0.08); }
-          if (stops[k].ms > 8000 && el > 3500 && el < stops[k].ms && now - lastBeat > (el > 6500 ? 560 : 800)) { lastBeat = now; tone(55, 0.18, 'sine', 0.35); tone(55, 0.18, 'sine', 0.3, 0.16); pulse('beat', 400); }
+          if (stops[k].ms > 9000 && el > 3500 && el < stops[k].ms && now - lastBeat > (el > 6500 ? 560 : 800)) { lastBeat = now; tone(55, 0.18, 'sine', 0.35); tone(55, 0.18, 'sine', 0.3, 0.16); }
         }
         var step = Math.floor(p);
         if (step !== last[i]) { last[i] = step; if (el > r.hold) tone(500 + t * 400, 0.06, 'square', 0.04); else if (step % 3 === 0) tone(300, 0.03, 'square', 0.02); }
@@ -254,7 +266,7 @@
           fin[i] = true; view.digits[i] = String(stops[k].digit);
           r.box.classList.remove('rolling'); r.box.classList.add('final');
           renderDigits(); tone(880, 0.25, 'triangle', 0.12);
-          if (special) { pulse('flash', 600); pulse('shake', 500); tone(60, 0.5, 'sine', 0.3); tone(1320, 0.5, 'triangle', 0.1); }
+          if (special) { pulse('flash', 600); tone(60, 0.5, 'sine', 0.3); tone(1320, 0.5, 'triangle', 0.1); }
         } else all = false;
       });
       if (all) done(); else requestAnimationFrame(frame);
@@ -274,8 +286,13 @@
     fanfare(); celebrate(idx < 4 ? 1 : idx < 6 ? 2 : idx === 6 ? 3 : 4);
   }
 
-  function draw() {
+  var lastDraw = 0;
+  function draw(e, blankOnly) {
     if (busy || !els.modal.hidden) return;
+    var nowT = Date.now();
+    if (nowT - lastDraw < 800) return;
+    lastDraw = nowT;
+    if (document.activeElement && document.activeElement.blur && document.activeElement.tagName === 'BUTTON') document.activeElement.blur();
     var idx = state.winners.length;
     if (idx >= PLAN.length) return;
     if (pool().length < 1) return;
@@ -285,17 +302,18 @@
       view.idx = idx; view.state = 'idle'; view.digits = ['?', '?', '?'];
       for (var k = 0; k < 3; k++) els.digits[k].classList.remove('final');
       renderHeader(); renderDigits(); renderSteps(); renderHint();
-      if (wasDone) return;
+      return;
     }
+    if (blankOnly) return;
     busy = true; special = !!p.special; frameEl.classList.toggle('dark', special); renderHint();
     if (p.mode === 'all') {
       var num = pickNumber(), s = pad(num);
-      roll([0, 1, 2], [{ ms: 5500, cycles: 5, digit: s[0] }, { ms: 6000, cycles: 6, digit: s[1] }, { ms: 6500, cycles: 7, digit: s[2] }], function () { finishWinner(idx, num); });
+      roll([0, 1, 2], [{ ms: 4000 + SLOW, cycles: 5, digit: s[0] }, { ms: 4500 + SLOW, cycles: 6, digit: s[1] }, { ms: 5000 + SLOW, cycles: 7, digit: s[2] }], function () { finishWinner(idx, num); });
     } else {
       if (!state.pending) state.pending = { num: pickNumber(), revealed: 0 };
       var pd = state.pending, d = pad(pd.num), slot = pd.revealed;
       save();
-      roll([slot], [{ ms: special ? (slot === 2 ? 8500 : 6500) : 5500, cycles: slot === 2 ? 9 : 7, digit: d[slot] }], function () {
+      roll([slot], [{ ms: special ? (slot === 2 ? 6500 + SLOW : 4000 + SLOW) : 4000 + SLOW, cycles: slot === 2 ? 9 : 7, digit: d[slot] }], function () {
         pd.revealed++; save();
         if (pd.revealed >= 3) finishWinner(idx, pd.num);
         else { busy = false; view.state = 'idle'; renderHint(); }
@@ -320,7 +338,7 @@
       if (state.winners.length || state.pending) {
         if (!confirm('Đổi khoảng số sẽ xoá toàn bộ kết quả đã quay. Tiếp tục?')) return;
       }
-      state.min = a; state.max = b; state.winners = []; state.pending = null;
+      state.min = a; state.max = b; state.winners = []; state.pending = null; state.skipped = [];
       save(); restoreView(); renderAll();
     }
     closeSettings();
@@ -328,7 +346,7 @@
   $('btnClose').onclick = closeSettings;
   $('btnReset').onclick = function () {
     if (!confirm('Reset toàn bộ? Tất cả số trúng thưởng sẽ bị xoá và các số được trả về vòng quay.')) return;
-    state.winners = []; state.pending = null; save(); restoreView(); renderAll(); closeSettings();
+    state.winners = []; state.pending = null; state.skipped = []; save(); restoreView(); renderAll(); closeSettings();
   };
   els.modal.addEventListener('mousedown', function (e) { if (e.target === els.modal) closeSettings(); });
 
@@ -340,6 +358,7 @@
   function toggleHide() { document.body.classList.toggle('hide-ui'); }
   function toggleSound() { state.sound = !state.sound; save(); renderSound(); if (state.sound) tone(660, 0.2, 'triangle', 0.1); }
 
+  els.btnSkip.onclick = function (e) { e.stopPropagation(); skipNumber(); };
   els.btnDraw.onclick = function (e) { e.stopPropagation(); draw(); };
   $('btnStage').onclick = function (e) { e.stopPropagation(); draw(); };
   $('btnSettings').onclick = function (e) { e.stopPropagation(); openSettings(); };

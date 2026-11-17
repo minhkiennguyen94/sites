@@ -41,7 +41,7 @@ body.hide-ui .toolbar{opacity:0;pointer-events:none}
 .digit.rolling>span{visibility:hidden}
 .reel .strip{will-change:transform}
 .reel .strip div{height:30cqh;display:flex;align-items:center;justify-content:center;font-size:25cqh;line-height:1;font-weight:900;color:var(--dark)}
-.digit.final{animation:pop .5s ease-out}
+
 @keyframes pop{0%{transform:scale(.85)}60%{transform:scale(1.08)}100%{transform:scale(1)}}
 .hint{margin-top:2.5cqh;font-size:2.6cqh;color:#ffd9a0;opacity:.85}
 
@@ -91,3 +91,5 @@ body.hide-ui .stage-btn{opacity:.001}
 @keyframes shake{0%,100%{transform:none}15%{transform:translate(-1cqw,.6cqh)}35%{transform:translate(1cqw,-.6cqh)}55%{transform:translate(-.7cqw,-.4cqh)}75%{transform:translate(.7cqw,.4cqh)}}
 #frame.beat .digits{animation:beat .4s}
 @keyframes beat{0%{transform:scale(1)}30%{transform:scale(1.04)}100%{transform:scale(1)}}
+
+.toolbar .row{display:flex;gap:.8cqw;align-items:stretch}.toolbar .row .primary{flex:1}button.small{font-size:1.5cqh;padding:.6cqh .8cqw;align-self:center}
