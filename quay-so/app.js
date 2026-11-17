@@ -161,6 +161,9 @@
       actx = new (window.AudioContext || window.webkitAudioContext)();
       master = actx.createGain(); master.gain.value = state.vol;
       var comp = actx.createDynamicsCompressor(); master.connect(comp); comp.connect(actx.destination);
+      var rv = actx.createConvolver(), rl = actx.sampleRate * 2.2, ib = actx.createBuffer(2, rl, actx.sampleRate), wet = actx.createGain(); wet.gain.value = 0.35;
+      for (var c = 0; c < 2; c++) { var cd = ib.getChannelData(c); for (var j = 0; j < rl; j++) cd[j] = (Math.random() * 2 - 1) * Math.pow(1 - j / rl, 2.8); }
+      rv.buffer = ib; master.connect(rv); rv.connect(wet); wet.connect(comp);
       noiseBuf = actx.createBuffer(1, actx.sampleRate * 2, actx.sampleRate);
       var d = noiseBuf.getChannelData(0); for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
     }
@@ -202,7 +205,41 @@
   function snare(vol, when) { noise(0.12, vol, when, 2500, 'bandpass'); tone(190, 0.08, 'triangle', vol * 0.6, when); }
   function boom(vol) { kick(vol, 0); noise(0.6, vol * 0.8, 0, 300, 'lowpass', 0.01); }
   function crackle(n, vol) { for (var i = 0; i < n; i++) noise(0.05, vol, Math.random() * 0.8, 3000 + Math.random() * 4000, 'highpass'); }
-  function applause(dur, vol) { noise(dur, vol, 0, 2200, 'bandpass', dur * 0.3); noise(dur, vol * 0.7, 0.1, 4500, 'bandpass', dur * 0.3); }
+  var clips = {};
+  function clip(name, vol, delay) {
+    if (!state.sound) return;
+    setTimeout(function () {
+      try {
+        var a = clips[name] || (clips[name] = new Audio('audio/' + name + '.ogg'));
+        a.currentTime = 0; a.volume = Math.max(0, Math.min(1, vol * state.vol)); a.play().catch(function () {});
+      } catch (e) {}
+    }, (delay || 0) * 1000);
+  }
+  function reelClick(vol) { noise(0.035, vol, 0, 2800 + Math.random() * 1200, 'bandpass'); tone(170 + Math.random() * 30, 0.04, 'square', vol * 0.5, 0); }
+  function bell(vol, when) {
+    [1, 2.76, 5.4, 8.9].forEach(function (m, i) { tone(1046 * m / (i ? 1 : 1), 0.9 / (1 + i * 0.6), 'sine', vol / (1 + i * 1.2), when); });
+  }
+  function coins(n, vol) {
+    for (var i = 0; i < n; i++) { var w = Math.random() * 0.7; tone(3000 + Math.random() * 2500, 0.18, 'sine', vol, w); tone(4500 + Math.random() * 2000, 0.12, 'triangle', vol * 0.6, w + 0.02); noise(0.03, vol, w, 6000, 'highpass'); }
+  }
+  function cheer(dur, vol) {
+    [[700, 1100], [1100, 2400], [500, 900]].forEach(function (fm, i) {
+      noise(dur, vol, i * 0.15, fm[0] + Math.random() * 100, 'bandpass', dur * 0.25);
+      noise(dur, vol * 0.8, i * 0.15 + 0.3, fm[1], 'bandpass', dur * 0.25);
+    });
+  }
+  function whistle(vol) {
+    if (!state.sound) return;
+    try {
+      var a = ctx(), t = a.currentTime, o = a.createOscillator(), g = a.createGain();
+      o.type = 'sine'; o.frequency.setValueAtTime(500, t); o.frequency.exponentialRampToValueAtTime(2200, t + 0.5);
+      g.gain.setValueAtTime(vol, t); g.gain.linearRampToValueAtTime(0.0001, t + 0.5);
+      o.connect(g); g.connect(master); o.start(t); o.stop(t + 0.5);
+    } catch (e) {}
+  }
+  function applause(dur, vol) { clip(dur > 5 ? 'applause2' : 'applause1', Math.min(1, vol * 4)); cheer(dur, vol * 0.8);
+    if (false) noise(dur, vol, 0, 2200, 'bandpass', dur * 0.3); }
+  function oldApplause(dur, vol) { noise(dur, vol, 0, 2200, 'bandpass', dur * 0.3); noise(dur, vol * 0.7, 0.1, 4500, 'bandpass', dur * 0.3); }
   function brass(freq, dur, vol, when) {
     tone(freq, dur, 'sawtooth', vol, when); tone(freq * 1.005, dur, 'square', vol * 0.5, when); tone(freq / 2, dur, 'triangle', vol, when);
   }
@@ -258,7 +295,8 @@
         c: palette[(Math.random() * palette.length) | 0], life: 0, max: 70 + Math.random() * 40, sz: 2 + Math.random() * 2.5
       });
     }
-    noise(0.35, 0.18, 0, 150 + randInt(100), 'lowpass', 0.01); crackle(4, 0.05);
+    var w = 0.35 + Math.random() * 0.1; whistle(0.05); noise(0.9, 0.5, w, 200 + randInt(150), 'lowpass', 0.005); kick(0.5, w); noise(0.25, 0.25, w, 1200, 'bandpass', 0.003);
+    for (var cq = 0; cq < 6; cq++) noise(0.04, 0.07, w + 0.2 + Math.random() * 1, 4000 + Math.random() * 4000, 'highpass');
     start();
   }
   function fireworks(bursts, span) {
@@ -328,16 +366,17 @@
         p = Math.min(p, r.total);
         r.strip.style.transform = 'translateY(' + (-(r.total - p) * r.H) + 'px)';
         
-        if (now - lastDrum > drumTick(el, r.hold, stops[k].ms, special)) { lastDrum = now; snare(el > r.hold ? 0.06 + 0.1 * (el - r.hold) / SLOW : 0.1, 0); if (special) kick(0.25, 0); }
+        if (now - lastDrum > drumTick(el, r.hold, stops[k].ms, special)) { lastDrum = now; reelClick(el > r.hold ? 0.12 + 0.1 * (el - r.hold) / SLOW : 0.1); if (special && el < r.hold) snare(0.07, 0); }
+        if (el < r.hold && now - lastBell > 380 + Math.random() * 300) { lastBell = now; bell(0.035, 0); if (Math.random() < 0.5) coins(2, 0.03); }
         if (special) {
           if (stops[k].ms > 9000 && el > 3500 && el < stops[k].ms && now - lastBeat > (el > 6500 ? 560 : 800)) { lastBeat = now; tone(55, 0.18, 'sine', 0.35); tone(55, 0.18, 'sine', 0.3, 0.16); }
         }
         var step = Math.floor(p);
-        if (step !== last[i]) { last[i] = step; if (el > r.hold) tone(500 + t * 400, 0.06, 'square', 0.04); else if (step % 3 === 0) tone(300, 0.03, 'square', 0.02); }
+        if (step !== last[i]) last[i] = step;
         if (t >= 1) {
           fin[i] = true; view.digits[i] = String(stops[k].digit);
           r.box.classList.remove('rolling'); r.box.classList.add('final');
-          renderDigits(); tone(880, 0.5, 'triangle', 0.14); tone(1760, 0.6, 'sine', 0.1); kick(0.5, 0);
+          renderDigits(); bell(0.1, 0); bell(0.08, 0.15); coins(6, 0.05); kick(0.6, 0); noise(0.12, 0.4, 0, 400, 'lowpass');
           if (special) { pulse('flash', 600); boom(0.8); tone(1320, 0.8, 'triangle', 0.12); }
         } else all = false;
       });
@@ -345,7 +384,7 @@
     })(begin);
   }
 
-  var special = false, frameEl = document.getElementById('frame'), lastBeat = 0, lastDrum = 0;
+  var special = false, frameEl = document.getElementById('frame'), lastBeat = 0, lastDrum = 0, lastBell = 0;
   function pulse(cls, ms) { frameEl.classList.remove(cls); void frameEl.offsetWidth; frameEl.classList.add(cls); setTimeout(function () { frameEl.classList.remove(cls); }, ms); }
   function finishWinner(idx, num) {
     var p = PLAN[idx];

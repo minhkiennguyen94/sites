@@ -6,3 +6,6 @@ Trang tĩnh, chạy offline: mở `index.html` bằng Chrome/Edge rồi nhấn *
 - Bấm **Space/Enter**, click chuột vào màn hình, hoặc nút "QUAY SỐ".
 - **S** cài đặt (khoảng số 0–999, tối thiểu 8 số; có nút Reset), **F** toàn màn hình, **H** ẩn nút + con trỏ chuột, **M** âm thanh.
 - Số đã trúng không ra lại, hiển thị góc dưới bên phải, lưu bằng localStorage (refresh không mất).
+
+## Âm thanh
+Máy slot (lách cách, chuông, xu), pháo hoa, fanfare, reo hò được tổng hợp bằng Web Audio (có reverb). Tiếng vỗ tay là file thật trong `audio/` (Wikimedia Commons, public domain): `applause1.ogg` = *Applause i.ogg*, `applause2.ogg` = *Slow starting applause.ogg*.
