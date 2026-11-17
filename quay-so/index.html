@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quay số trúng thưởng – 20 năm Thành Phát</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="confetti"></canvas>
+
+<main id="stage">
+  <header class="top">
+    <img class="brand" src="logo-thanh-phat.png" alt="Thành Phát">
+    <div class="logo20"><img src="logo-20-nam.png" alt="Kỷ niệm 20 năm Thành Phát – Vẹn tròn gắn kết chung một mái nhà"></div>
+    <div class="brand-spacer"></div>
+  </header>
+
+  <h1 class="title">Quay số trúng thưởng</h1>
+
+  <ol id="steps" class="steps" aria-label="Các giải thưởng"></ol>
+
+  <section class="draw">
+    <div id="prizeName" class="prize-name">GIẢI BA</div>
+    <div id="prizeTurn" class="prize-turn">Lượt 1/4</div>
+    <div id="digits" class="digits" aria-live="polite">
+      <div class="digit"><span>?</span></div>
+      <div class="digit"><span>?</span></div>
+      <div class="digit"><span>?</span></div>
+    </div>
+    <div id="hint" class="hint">Nhấn để quay số</div>
+  </section>
+
+  <aside class="winners" id="winners">
+    <h2>Số đã trúng</h2>
+    <div id="winnersList"></div>
+  </aside>
+</main>
+
+<div id="toolbar" class="toolbar">
+  <button id="btnDraw" class="primary" title="Quay (Space / Enter)">▶ QUAY SỐ</button>
+  <button id="btnSettings" title="Cài đặt (S)">⚙ Cài đặt</button>
+  <button id="btnFull" title="Toàn màn hình (F)">⛶ Toàn màn hình</button>
+  <button id="btnSound" title="Âm thanh (M)">🔇 Âm thanh: tắt</button>
+  <button id="btnHide" title="Ẩn nút điều khiển & con trỏ (H)">🙈 Ẩn nút (H)</button>
+</div>
+
+<div id="modal" class="modal" hidden>
+  <div class="panel" role="dialog" aria-labelledby="setTitle">
+    <h2 id="setTitle">Cài đặt</h2>
+    <label>Số ngẫu nhiên từ
+      <input id="inMin" type="number" min="0" max="999" step="1">
+    </label>
+    <label>đến
+      <input id="inMax" type="number" min="0" max="999" step="1">
+    </label>
+    <p class="note">Mỗi số gồm 3 chữ số (000 – 999). Cần tối thiểu 8 số để quay đủ 8 giải. Đổi khoảng số sẽ xoá kết quả đã quay.</p>
+    <p id="poolInfo" class="note"></p>
+    <p id="err" class="err"></p>
+    <div class="row">
+      <button id="btnSave" class="primary">Lưu</button>
+      <button id="btnClose">Đóng</button>
+      <button id="btnReset" class="danger">Reset toàn bộ kết quả</button>
+    </div>
+    <p class="note keys">Phím tắt: <b>Space/Enter</b> quay · <b>S</b> cài đặt · <b>F</b> toàn màn hình · <b>H</b> ẩn/hiện nút · <b>M</b> âm thanh</p>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
