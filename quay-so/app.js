@@ -217,6 +217,7 @@
   }
 
   /* ---------- Drawing ---------- */
+  var SLOW = 1500;
   function easeOut(t) { var u = 1 - t; return 1 - u * u * u * u * u; }
 
   // Slot-machine reel: each stop = { digit, ms, cycles }. Fast spin that decelerates before stopping.
@@ -224,23 +225,23 @@
     var begin = performance.now(), fin = {}, last = {};
     var reels = slots.map(function (i, k) {
       var box = els.digits[i], reel = box.querySelector('.reel'), strip = reel.firstChild;
-      var total = stops[k].cycles * 10 + Number(stops[k].digit), html = '';
+      var hold = stops[k].ms - SLOW, total = Math.ceil(0.012 * (hold + SLOW / 2) / 10) * 10 + Number(stops[k].digit), html = '';
       for (var n = 0; n <= total; n++) html += '<div>' + ((total - n) % 10) + '</div>';
       strip.innerHTML = html;
       box.classList.add('rolling'); box.classList.remove('final');
       last[i] = 0;
-      return { box: box, strip: strip, total: total, H: box.clientHeight };
+      return { box: box, strip: strip, total: total, hold: hold, H: box.clientHeight };
     });
     (function frame(now) {
       var all = true;
       slots.forEach(function (i, k) {
         if (fin[i]) return;
-        var r = reels[k], t = Math.min(1, (now - begin) / stops[k].ms), p = r.total * easeOut(t);
+        var r = reels[k], el = now - begin, t = Math.min(1, el / stops[k].ms), v = r.total / (r.hold + SLOW / 2), u = Math.max(0, el - r.hold), p = el < r.hold ? v * el : v * (r.hold + u - u * u / (2 * SLOW));
         p = Math.min(p, r.total);
         r.strip.style.transform = 'translateY(' + (-(r.total - p) * r.H) + 'px)';
-        r.strip.style.filter = t < 0.55 ? 'blur(' + (0.3 * (1 - t)) + 'cqh)' : 'none';
+        r.strip.style.filter = el < r.hold + 600 ? 'blur(.25cqh)' : 'none';
         var step = Math.floor(p);
-        if (step !== last[i]) { last[i] = step; if (t > 0.6) tone(500 + t * 400, 0.06, 'square', 0.04); else if (step % 3 === 0) tone(300, 0.03, 'square', 0.02); }
+        if (step !== last[i]) { last[i] = step; if (el > r.hold) tone(500 + t * 400, 0.06, 'square', 0.04); else if (step % 3 === 0) tone(300, 0.03, 'square', 0.02); }
         if (t >= 1) {
           fin[i] = true; view.digits[i] = String(stops[k].digit);
           r.box.classList.remove('rolling'); r.box.classList.add('final');
@@ -276,12 +277,12 @@
     busy = true; renderHint();
     if (p.mode === 'all') {
       var num = pickNumber(), s = pad(num);
-      roll([0, 1, 2], [{ ms: 4100, cycles: 5, digit: s[0] }, { ms: 4900, cycles: 6, digit: s[1] }, { ms: 5700, cycles: 7, digit: s[2] }], function () { finishWinner(idx, num); });
+      roll([0, 1, 2], [{ ms: 5500, cycles: 5, digit: s[0] }, { ms: 6000, cycles: 6, digit: s[1] }, { ms: 6500, cycles: 7, digit: s[2] }], function () { finishWinner(idx, num); });
     } else {
       if (!state.pending) state.pending = { num: pickNumber(), revealed: 0 };
       var pd = state.pending, d = pad(pd.num), slot = pd.revealed;
       save();
-      roll([slot], [{ ms: slot === 2 ? 7500 : 5500, cycles: slot === 2 ? 9 : 7, digit: d[slot] }], function () {
+      roll([slot], [{ ms: 5500, cycles: slot === 2 ? 9 : 7, digit: d[slot] }], function () {
         pd.revealed++; save();
         if (pd.revealed >= 3) finishWinner(idx, pd.num);
         else { busy = false; view.state = 'idle'; renderHint(); }
