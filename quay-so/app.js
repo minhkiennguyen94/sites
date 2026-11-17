@@ -143,56 +143,111 @@
   }
   function fanfare() { [523, 659, 784, 1046].forEach(function (f, i) { tone(f, 0.45, 'triangle', 0.12, i * 0.14); }); }
 
-  /* ---------- Confetti ---------- */
-  var cv = $('confetti'), cx = cv.getContext('2d'), parts = [], raf = 0;
+  /* ---------- Fireworks & confetti ---------- */
+  var cv = $('confetti'), cx = cv.getContext('2d'), parts = [], sparks = [], raf = 0;
   function fit() { cv.width = innerWidth; cv.height = innerHeight; }
   addEventListener('resize', fit); fit();
-  function confetti(big) {
-    var colors = ['#ffd46a', '#fff', '#ff4b57', '#f0a81c', '#ffe9a8'];
-    var n = big ? 360 : 180;
+  var GOLD = ['#ffd46a', '#ffe9a8', '#f0a81c', '#fff3c4'];
+  var REDS = ['#ff4b57', '#ff1f2d', '#ff7a45', '#ffffff'];
+
+  function confetti(n) {
+    var colors = ['#ffd46a', '#fff', '#ff4b57', '#f0a81c', '#ffe9a8', '#ff1f2d'];
     for (var i = 0; i < n; i++) {
       var left = i % 2 === 0;
       parts.push({
-        x: left ? 0 : cv.width, y: cv.height * 0.75,
-        vx: (left ? 1 : -1) * (4 + Math.random() * 12) * (cv.width / 1500),
-        vy: -(10 + Math.random() * 16) * (cv.height / 900),
+        x: left ? 0 : cv.width, y: cv.height * 0.8,
+        vx: (left ? 1 : -1) * (4 + Math.random() * 14) * (cv.width / 1500),
+        vy: -(11 + Math.random() * 18) * (cv.height / 900),
         w: 6 + Math.random() * 8, h: 10 + Math.random() * 10, r: Math.random() * 6, vr: (Math.random() - .5) * .4,
         c: colors[(Math.random() * colors.length) | 0], life: 0
       });
     }
-    if (!raf) raf = requestAnimationFrame(tick);
+    start();
   }
+  function burst(x, y, palette, power) {
+    var n = 90 + ((Math.random() * 50) | 0), ring = Math.random() < 0.35;
+    for (var i = 0; i < n; i++) {
+      var a = (i / n) * Math.PI * 2 + Math.random() * 0.1;
+      var s = (ring ? 1 : 0.35 + Math.random() * 0.65) * power * (cv.height / 900);
+      sparks.push({
+        x: x, y: y, vx: Math.cos(a) * s, vy: Math.sin(a) * s,
+        c: palette[(Math.random() * palette.length) | 0], life: 0, max: 70 + Math.random() * 40, sz: 2 + Math.random() * 2.5
+      });
+    }
+    tone(120 + randInt(80), 0.35, 'sawtooth', 0.05);
+    start();
+  }
+  function fireworks(bursts, span) {
+    for (var i = 0; i < bursts; i++) {
+      (function (i) {
+        setTimeout(function () {
+          var pal = Math.random() < 0.5 ? GOLD : (Math.random() < 0.6 ? REDS : GOLD.concat(REDS));
+          burst(cv.width * (0.08 + Math.random() * 0.84), cv.height * (0.12 + Math.random() * 0.4), pal, 9 + Math.random() * 6);
+        }, (i / bursts) * span + Math.random() * 120);
+      })(i);
+    }
+  }
+  function celebrate(level) {
+    // level: 1 = Giải Ba, 2 = Nhì, 3 = Nhất, 4 = Đặc biệt
+    confetti(150 + level * 120);
+    fireworks(6 + level * 5, 2500 + level * 1500);
+    if (level >= 3) setTimeout(function () { confetti(250); }, 1800);
+    if (level >= 4) setTimeout(function () { confetti(300); }, 3800);
+  }
+  function start() { if (!raf) raf = requestAnimationFrame(tick); }
   function tick() {
-    cx.clearRect(0, 0, cv.width, cv.height);
-    parts = parts.filter(function (p) { return p.y < cv.height + 30 && p.life < 400; });
+    cx.globalCompositeOperation = 'destination-out';
+    cx.fillStyle = 'rgba(0,0,0,0.22)'; cx.fillRect(0, 0, cv.width, cv.height);
+    cx.globalCompositeOperation = 'source-over';
+    parts = parts.filter(function (p) { return p.y < cv.height + 30 && p.life < 420; });
     parts.forEach(function (p) {
       p.vy += 0.35; p.vx *= 0.99; p.x += p.vx; p.y += p.vy; p.r += p.vr; p.life++;
       cx.save(); cx.translate(p.x, p.y); cx.rotate(p.r); cx.fillStyle = p.c; cx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h); cx.restore();
     });
-    raf = parts.length ? requestAnimationFrame(tick) : 0;
-    if (!raf) cx.clearRect(0, 0, cv.width, cv.height);
+    sparks = sparks.filter(function (s) { return s.life < s.max; });
+    cx.globalCompositeOperation = 'lighter';
+    sparks.forEach(function (s) {
+      s.vx *= 0.97; s.vy = s.vy * 0.97 + 0.12; s.x += s.vx; s.y += s.vy; s.life++;
+      cx.globalAlpha = Math.max(0, 1 - s.life / s.max);
+      cx.fillStyle = s.c; cx.beginPath(); cx.arc(s.x, s.y, s.sz, 0, 6.283); cx.fill();
+    });
+    cx.globalAlpha = 1; cx.globalCompositeOperation = 'source-over';
+    if (parts.length || sparks.length) raf = requestAnimationFrame(tick);
+    else { raf = 0; cx.clearRect(0, 0, cv.width, cv.height); }
   }
 
   /* ---------- Drawing ---------- */
+  function easeOut(t) { var u = 1 - t; return 1 - u * u * u * u; }
+
+  // Slot-machine reel: each stop = { digit, ms, cycles }. Fast spin that decelerates before stopping.
   function roll(slots, stops, done) {
-    // slots: digit indexes to spin; stops[i]: time (ms) when slot i locks -> {digit}
-    var start = performance.now(), locked = {};
-    slots.forEach(function (i) { els.digits[i].classList.add('rolling'); els.digits[i].classList.remove('final'); });
-    var lastTick = 0;
+    var begin = performance.now(), fin = {}, last = {};
+    var reels = slots.map(function (i, k) {
+      var box = els.digits[i], reel = box.querySelector('.reel'), strip = reel.firstChild;
+      var total = stops[k].cycles * 10 + Number(stops[k].digit), html = '';
+      for (var n = 0; n <= total + 1; n++) html += '<div>' + (n % 10) + '</div>';
+      strip.innerHTML = html;
+      box.classList.add('rolling'); box.classList.remove('final');
+      last[i] = 0;
+      return { box: box, strip: strip, total: total, H: box.clientHeight };
+    });
     (function frame(now) {
-      var t = now - start, all = true;
+      var all = true;
       slots.forEach(function (i, k) {
-        if (locked[i]) return;
-        if (t >= stops[k].at) {
-          locked[i] = true; view.digits[i] = stops[k].digit;
-          els.digits[i].classList.remove('rolling'); els.digits[i].classList.add('final');
-          tone(880, 0.25, 'triangle', 0.12);
-        } else { all = false; view.digits[i] = String(randInt(10)); }
+        if (fin[i]) return;
+        var r = reels[k], t = Math.min(1, (now - begin) / stops[k].ms), p = r.total * easeOut(t);
+        r.strip.style.transform = 'translateY(' + (-p * r.H) + 'px)';
+        r.strip.style.filter = t < 0.55 ? 'blur(' + (0.3 * (1 - t)) + 'cqh)' : 'none';
+        var step = Math.floor(p);
+        if (step !== last[i]) { last[i] = step; if (t > 0.6) tone(500 + t * 400, 0.06, 'square', 0.04); else if (step % 3 === 0) tone(300, 0.03, 'square', 0.02); }
+        if (t >= 1) {
+          fin[i] = true; view.digits[i] = String(stops[k].digit);
+          r.box.classList.remove('rolling'); r.box.classList.add('final');
+          renderDigits(); tone(880, 0.25, 'triangle', 0.12);
+        } else all = false;
       });
-      renderDigits();
-      if (now - lastTick > 90) { lastTick = now; tone(300 + randInt(200), 0.05, 'square', 0.03); }
       if (all) done(); else requestAnimationFrame(frame);
-    })(start);
+    })(begin);
   }
 
   function finishWinner(idx, num) {
@@ -203,7 +258,7 @@
     view.idx = idx; view.state = 'done';
     busy = false;
     renderSteps(); renderWinners(); renderHint();
-    fanfare(); confetti(!!p.special || idx >= 6);
+    fanfare(); celebrate(idx < 4 ? 1 : idx < 6 ? 2 : idx === 6 ? 3 : 4);
   }
 
   function draw() {
@@ -220,12 +275,12 @@
     busy = true; renderHint();
     if (p.mode === 'all') {
       var num = pickNumber(), s = pad(num);
-      roll([0, 1, 2], [{ at: 1500, digit: s[0] }, { at: 2000, digit: s[1] }, { at: 2500, digit: s[2] }], function () { finishWinner(idx, num); });
+      roll([0, 1, 2], [{ ms: 2600, cycles: 5, digit: s[0] }, { ms: 3400, cycles: 6, digit: s[1] }, { ms: 4200, cycles: 7, digit: s[2] }], function () { finishWinner(idx, num); });
     } else {
       if (!state.pending) state.pending = { num: pickNumber(), revealed: 0 };
       var pd = state.pending, d = pad(pd.num), slot = pd.revealed;
       save();
-      roll([slot], [{ at: 1600, digit: d[slot] }], function () {
+      roll([slot], [{ ms: slot === 2 ? 6000 : 4000, cycles: slot === 2 ? 9 : 7, digit: d[slot] }], function () {
         pd.revealed++; save();
         if (pd.revealed >= 3) finishWinner(idx, pd.num);
         else { busy = false; view.state = 'idle'; renderHint(); }
@@ -288,5 +343,6 @@
     else if (k === 'm') toggleSound();
   });
 
+  Array.prototype.forEach.call(els.digits, function (b) { b.insertAdjacentHTML('beforeend', '<div class="reel"><div class="strip"></div></div>'); });
   restoreView(); renderAll();
 })();

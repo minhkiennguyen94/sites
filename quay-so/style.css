@@ -35,7 +35,59 @@ body.hide-ui .toolbar{opacity:0;pointer-events:none}
   border:.6cqh solid var(--gold2);overflow:hidden}
 .digit span{font-size:25cqh;line-height:1;font-weight:900;color:var(--dark);font-variant-numeric:tabular-nums}
 .digit.pending span{color:#c9a56a;opacity:.7}
-.digit.rolling span{filter:blur(.25cqh)}
+.digit{position:relative}
+.digit .reel{display:none;position:absolute;inset:0;overflow:hidden}
+.digit.rolling .reel{display:block}
+.digit.rolling>span{visibility:hidden}
+.reel .strip{will-change:transform}
+.reel .strip div{height:30cqh;display:flex;align-items:center;justify-content:center;font-size:25cqh;line-height:1;font-weight:900;color:var(--dark)}
+.digit.final{animation:pop .5s ease-out}
+@keyframes pop{0%{transform:scale(.85)}60%{transform:scale(1.08)}100%{transform:scale(1)}}
+.hint{margin-top:2.5cqh;font-size:2.6cqh;color:#ffd9a0;opacity:.85}
+
+.winners{position:absolute;right:1.5cqw;bottom:1.5cqh;width:13cqw;max-height:46cqh;overflow:auto;background:rgba(60,0,4,.55);
+  border:.2cqh solid rgba(255,212,106,.5);border-radius:1cqh;padding:.8cqh .8cqw;z-index:2}
+.winners h2{position:sticky;top:-.8cqh;background:rgba(60,0,4,.95);margin:0 0 .4cqh;padding:.2cqh 0;font-size:1.5cqh;color:var(--gold);text-transform:uppercase;letter-spacing:.1cqh}
+.wrow{display:flex;justify-content:space-between;align-items:baseline;gap:.5cqw;padding:.25cqh 0;font-size:1.6cqh;border-bottom:1px solid rgba(255,212,106,.15)}
+.wrow:last-child{border-bottom:0}
+.wrow .wp{color:#ffd9a0;white-space:nowrap}
+.wrow .wn{font-weight:800;font-size:1.9cqh;color:#fff;letter-spacing:.2cqh}
+.empty{opacity:.6;font-size:1.5cqh}
+.toolbar{opacity:0;pointer-events:none}
+#confetti{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:5}
+
+#stage{position:relative;height:100%;display:flex;flex-direction:column;align-items:center;padding:1.5cqh 2cqw 0;cursor:pointer}
+.top{width:100%;display:flex;align-items:center;justify-content:space-between}
+.brand{height:11cqh;max-width:18cqw;object-fit:contain;filter:drop-shadow(0 .3cqh .6cqh rgba(0,0,0,.35))}
+.brand-spacer{width:18cqw}
+.logo20{background:#fff;border-radius:2cqh;padding:.6cqh 2cqw;box-shadow:0 .8cqh 3cqh rgba(0,0,0,.4),0 0 0 .5cqh var(--gold)}
+.logo20 img{display:block;height:15cqh;max-width:50cqw;object-fit:contain}
+
+.title{margin:1.6cqh 0 .6cqh;font-size:5.6cqh;letter-spacing:.5cqh;text-transform:uppercase;font-weight:800;
+  color:var(--gold);text-shadow:0 .3cqh 0 #7a4a00,0 0 2cqh rgba(255,200,80,.6)}
+
+.steps{list-style:none;margin:0;padding:0;display:flex;gap:1cqw}
+.steps li{padding:.7cqh 1.4cqw;border-radius:5cqh;font-size:2.3cqh;font-weight:600;background:rgba(0,0,0,.28);
+  border:.25cqh solid rgba(255,212,106,.35);color:#ffd9a0}
+.steps li.done{background:rgba(255,212,106,.18);color:#fff}
+.steps li.cur{background:linear-gradient(#ffe38f,#f0a81c);color:#7a0a10;border-color:#fff;box-shadow:0 0 2cqh rgba(255,212,106,.8)}
+
+.draw{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:0}
+.prize-name{font-size:8.5cqh;font-weight:900;letter-spacing:.6cqh;color:#fff;text-shadow:0 .4cqh 1cqh rgba(0,0,0,.5)}
+.prize-name.special{color:var(--gold);text-shadow:0 0 3cqh rgba(255,212,106,.9),0 .4cqh 1cqh rgba(0,0,0,.5)}
+.prize-turn{font-size:3cqh;color:#ffd9a0;margin-bottom:2cqh}
+.digits{display:flex;gap:2cqw}
+.digit{width:15cqw;height:30cqh;border-radius:2.5cqh;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(#fff 0%,#fff3d0 55%,#ffe19a 100%);box-shadow:0 1cqh 3cqh rgba(0,0,0,.5),inset 0 -1cqh 2cqh rgba(180,100,0,.25);
+  border:.6cqh solid var(--gold2);overflow:hidden}
+.digit span{font-size:25cqh;line-height:1;font-weight:900;color:var(--dark);font-variant-numeric:tabular-nums}
+.digit.pending span{color:#c9a56a;opacity:.7}
+.digit{position:relative}
+.digit .reel{display:none;position:absolute;inset:0;overflow:hidden}
+.digit.rolling .reel{display:block}
+.digit.rolling>span{visibility:hidden}
+.reel .strip{will-change:transform}
+.reel .strip div{height:30cqh;display:flex;align-items:center;justify-content:center;font-size:25cqh;line-height:1;font-weight:900;color:var(--dark)}
 .digit.final{animation:pop .5s ease-out}
 @keyframes pop{0%{transform:scale(.85)}60%{transform:scale(1.08)}100%{transform:scale(1)}}
 .hint{margin-top:2.5cqh;font-size:2.6cqh;color:#ffd9a0;opacity:.85}
