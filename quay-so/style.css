@@ -79,3 +79,15 @@ button.danger{background:#7a0a10;border-color:#ff8a8a}
 .stage-btn{position:absolute;left:50%;bottom:4cqh;transform:translateX(-50%);z-index:4;font-size:3cqh;font-weight:900;padding:1.2cqh 4cqw;border-radius:5cqh;text-align:center;background:linear-gradient(#ffe38f,#f0a81c);color:#6e070d;border:.3cqh solid #fff;box-shadow:0 0 3cqh rgba(255,212,106,.7)}
 .stage-btn:hover{background:linear-gradient(#fff0b8,#ffbf3a)}
 body.hide-ui .stage-btn{opacity:.001}
+
+#frame::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:3;opacity:0;transition:opacity 1.2s;
+  background:radial-gradient(ellipse 45% 40% at 50% 62%,rgba(0,0,0,0) 0%,rgba(0,0,0,.55) 55%,rgba(0,0,0,.9) 100%)}
+#frame.dark::after{opacity:1}
+#frame.dark .digit,#frame.dark .prize-name,#frame.dark .prize-turn,#frame.dark .hint{position:relative;z-index:4}
+#frame.dark .digit{box-shadow:0 0 6cqh 1cqh rgba(255,212,106,.7),0 1cqh 3cqh rgba(0,0,0,.5)}
+#frame.flash::before{content:"";position:absolute;inset:0;z-index:6;pointer-events:none;background:#fff;animation:flash .6s ease-out forwards}
+@keyframes flash{0%{opacity:.85}100%{opacity:0}}
+#frame.shake #stage{animation:shake .5s}
+@keyframes shake{0%,100%{transform:none}15%{transform:translate(-1cqw,.6cqh)}35%{transform:translate(1cqw,-.6cqh)}55%{transform:translate(-.7cqw,-.4cqh)}75%{transform:translate(.7cqw,.4cqh)}}
+#frame.beat .digits{animation:beat .4s}
+@keyframes beat{0%{transform:scale(1)}30%{transform:scale(1.04)}100%{transform:scale(1)}}

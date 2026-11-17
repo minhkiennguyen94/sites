@@ -91,7 +91,7 @@
     var txt;
     if (busy) txt = 'Đang quay…';
     else if (n >= PLAN.length && view.state === 'done') txt = '🎉 Chúc mừng! Đã quay xong tất cả các giải';
-    else if (view.state === 'done') txt = 'Nhấn để quay: ' + PLAN[n].prize + (PLAN[n].of > 1 ? ' (lượt ' + PLAN[n].turn + '/' + PLAN[n].of + ')' : '');
+    else if (view.state === 'done') txt = 'Nhấn để chuyển sang: ' + PLAN[n].prize + (PLAN[n].of > 1 ? ' (lượt ' + PLAN[n].turn + '/' + PLAN[n].of + ')' : '');
     else if (PLAN[view.idx].mode === 'seq') {
       var r = state.pending ? state.pending.revealed : 0;
       txt = r === 0 ? 'Nhấn để quay chữ số thứ nhất' : 'Nhấn để quay chữ số thứ ' + (r + 1);
@@ -192,7 +192,11 @@
     confetti(150 + level * 120);
     fireworks(6 + level * 5, 2500 + level * 1500);
     if (level >= 3) setTimeout(function () { confetti(250); }, 1800);
-    if (level >= 4) setTimeout(function () { confetti(300); }, 3800);
+    if (level >= 4) {
+      setTimeout(function () { confetti(300); fireworks(14, 3000); }, 3800);
+      setTimeout(function () { confetti(300); fireworks(14, 3000); }, 7500);
+      fireworks(20, 5000);
+    }
   }
   function start() { if (!raf) raf = requestAnimationFrame(tick); }
   function tick() {
@@ -240,25 +244,32 @@
         p = Math.min(p, r.total);
         r.strip.style.transform = 'translateY(' + (-(r.total - p) * r.H) + 'px)';
         r.strip.style.filter = el < r.hold + 600 ? 'blur(.25cqh)' : 'none';
+        if (special) {
+          if (now - lastDrum > 70) { lastDrum = now; tone(90 + randInt(40), 0.06, 'triangle', 0.08); }
+          if (stops[k].ms > 8000 && el > 3500 && el < stops[k].ms && now - lastBeat > (el > 6500 ? 560 : 800)) { lastBeat = now; tone(55, 0.18, 'sine', 0.35); tone(55, 0.18, 'sine', 0.3, 0.16); pulse('beat', 400); }
+        }
         var step = Math.floor(p);
         if (step !== last[i]) { last[i] = step; if (el > r.hold) tone(500 + t * 400, 0.06, 'square', 0.04); else if (step % 3 === 0) tone(300, 0.03, 'square', 0.02); }
         if (t >= 1) {
           fin[i] = true; view.digits[i] = String(stops[k].digit);
           r.box.classList.remove('rolling'); r.box.classList.add('final');
           renderDigits(); tone(880, 0.25, 'triangle', 0.12);
+          if (special) { pulse('flash', 600); pulse('shake', 500); tone(60, 0.5, 'sine', 0.3); tone(1320, 0.5, 'triangle', 0.1); }
         } else all = false;
       });
       if (all) done(); else requestAnimationFrame(frame);
     })(begin);
   }
 
+  var special = false, frameEl = document.getElementById('frame'), lastBeat = 0, lastDrum = 0;
+  function pulse(cls, ms) { frameEl.classList.remove(cls); void frameEl.offsetWidth; frameEl.classList.add(cls); setTimeout(function () { frameEl.classList.remove(cls); }, ms); }
   function finishWinner(idx, num) {
     var p = PLAN[idx];
     state.winners.push({ prize: p.prize, label: p.prize + (p.of > 1 ? ' (' + p.turn + ')' : ''), num: num });
     state.pending = null;
     save();
     view.idx = idx; view.state = 'done';
-    busy = false;
+    busy = false; special = false; frameEl.classList.remove('dark');
     renderSteps(); renderWinners(); renderHint();
     fanfare(); celebrate(idx < 4 ? 1 : idx < 6 ? 2 : idx === 6 ? 3 : 4);
   }
@@ -269,12 +280,14 @@
     if (idx >= PLAN.length) return;
     if (pool().length < 1) return;
     var p = PLAN[idx];
-    if (view.state === 'done' || view.idx !== idx) {
+    var wasDone = view.state === 'done';
+    if (wasDone || view.idx !== idx) {
       view.idx = idx; view.state = 'idle'; view.digits = ['?', '?', '?'];
       for (var k = 0; k < 3; k++) els.digits[k].classList.remove('final');
-      renderHeader(); renderDigits(); renderSteps();
+      renderHeader(); renderDigits(); renderSteps(); renderHint();
+      if (wasDone) return;
     }
-    busy = true; renderHint();
+    busy = true; special = !!p.special; frameEl.classList.toggle('dark', special); renderHint();
     if (p.mode === 'all') {
       var num = pickNumber(), s = pad(num);
       roll([0, 1, 2], [{ ms: 5500, cycles: 5, digit: s[0] }, { ms: 6000, cycles: 6, digit: s[1] }, { ms: 6500, cycles: 7, digit: s[2] }], function () { finishWinner(idx, num); });
@@ -282,7 +295,7 @@
       if (!state.pending) state.pending = { num: pickNumber(), revealed: 0 };
       var pd = state.pending, d = pad(pd.num), slot = pd.revealed;
       save();
-      roll([slot], [{ ms: 5500, cycles: slot === 2 ? 9 : 7, digit: d[slot] }], function () {
+      roll([slot], [{ ms: special ? (slot === 2 ? 8500 : 6500) : 5500, cycles: slot === 2 ? 9 : 7, digit: d[slot] }], function () {
         pd.revealed++; save();
         if (pd.revealed >= 3) finishWinner(idx, pd.num);
         else { busy = false; view.state = 'idle'; renderHint(); }
