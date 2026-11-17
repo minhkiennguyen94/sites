@@ -17,7 +17,7 @@
   var els = {
     digits: $('digits').children, prizeName: $('prizeName'), prizeTurn: $('prizeTurn'), hint: $('hint'),
     steps: $('steps'), list: $('winnersList'), modal: $('modal'), inMin: $('inMin'), inMax: $('inMax'),
-    err: $('err'), poolInfo: $('poolInfo'), btnSound: $('btnSound'), btnDraw: $('btnDraw')
+    err: $('err'), poolInfo: $('poolInfo'), btnSound: $('btnSound'), btnDraw: $('btnDraw'), btnStage: $('btnStage')
   };
 
   var state = load();
@@ -97,7 +97,7 @@
       txt = r === 0 ? 'Nhấn để quay chữ số thứ nhất' : 'Nhấn để quay chữ số thứ ' + (r + 1);
     } else txt = 'Nhấn để quay số';
     els.hint.textContent = txt;
-    els.btnDraw.disabled = busy || (n >= PLAN.length && !state.pending);
+    els.btnStage.disabled = els.btnDraw.disabled = busy || (n >= PLAN.length && !state.pending);
   }
   function renderWinners() {
     els.list.innerHTML = '';
@@ -217,7 +217,7 @@
   }
 
   /* ---------- Drawing ---------- */
-  function easeOut(t) { var u = 1 - t; return 1 - u * u * u * u; }
+  function easeOut(t) { var u = 1 - t; return 1 - u * u * u * u * u; }
 
   // Slot-machine reel: each stop = { digit, ms, cycles }. Fast spin that decelerates before stopping.
   function roll(slots, stops, done) {
@@ -225,7 +225,7 @@
     var reels = slots.map(function (i, k) {
       var box = els.digits[i], reel = box.querySelector('.reel'), strip = reel.firstChild;
       var total = stops[k].cycles * 10 + Number(stops[k].digit), html = '';
-      for (var n = 0; n <= total + 1; n++) html += '<div>' + (n % 10) + '</div>';
+      for (var n = 0; n <= total; n++) html += '<div>' + ((total - n) % 10) + '</div>';
       strip.innerHTML = html;
       box.classList.add('rolling'); box.classList.remove('final');
       last[i] = 0;
@@ -236,7 +236,8 @@
       slots.forEach(function (i, k) {
         if (fin[i]) return;
         var r = reels[k], t = Math.min(1, (now - begin) / stops[k].ms), p = r.total * easeOut(t);
-        r.strip.style.transform = 'translateY(' + (-p * r.H) + 'px)';
+        p = Math.min(p, r.total);
+        r.strip.style.transform = 'translateY(' + (-(r.total - p) * r.H) + 'px)';
         r.strip.style.filter = t < 0.55 ? 'blur(' + (0.3 * (1 - t)) + 'cqh)' : 'none';
         var step = Math.floor(p);
         if (step !== last[i]) { last[i] = step; if (t > 0.6) tone(500 + t * 400, 0.06, 'square', 0.04); else if (step % 3 === 0) tone(300, 0.03, 'square', 0.02); }
@@ -275,12 +276,12 @@
     busy = true; renderHint();
     if (p.mode === 'all') {
       var num = pickNumber(), s = pad(num);
-      roll([0, 1, 2], [{ ms: 2600, cycles: 5, digit: s[0] }, { ms: 3400, cycles: 6, digit: s[1] }, { ms: 4200, cycles: 7, digit: s[2] }], function () { finishWinner(idx, num); });
+      roll([0, 1, 2], [{ ms: 4100, cycles: 5, digit: s[0] }, { ms: 4900, cycles: 6, digit: s[1] }, { ms: 5700, cycles: 7, digit: s[2] }], function () { finishWinner(idx, num); });
     } else {
       if (!state.pending) state.pending = { num: pickNumber(), revealed: 0 };
       var pd = state.pending, d = pad(pd.num), slot = pd.revealed;
       save();
-      roll([slot], [{ ms: slot === 2 ? 6000 : 4000, cycles: slot === 2 ? 9 : 7, digit: d[slot] }], function () {
+      roll([slot], [{ ms: slot === 2 ? 7500 : 5500, cycles: slot === 2 ? 9 : 7, digit: d[slot] }], function () {
         pd.revealed++; save();
         if (pd.revealed >= 3) finishWinner(idx, pd.num);
         else { busy = false; view.state = 'idle'; renderHint(); }
@@ -326,6 +327,7 @@
   function toggleSound() { state.sound = !state.sound; save(); renderSound(); if (state.sound) tone(660, 0.2, 'triangle', 0.1); }
 
   els.btnDraw.onclick = function (e) { e.stopPropagation(); draw(); };
+  $('btnStage').onclick = function (e) { e.stopPropagation(); draw(); };
   $('btnSettings').onclick = function (e) { e.stopPropagation(); openSettings(); };
   $('btnFull').onclick = function (e) { e.stopPropagation(); toggleFull(); };
   $('btnSound').onclick = function (e) { e.stopPropagation(); toggleSound(); };
